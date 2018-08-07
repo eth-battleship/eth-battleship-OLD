@@ -40,10 +40,10 @@ contract Game {
       uint hits;
   }
 
-  Player player1;
-  Player player2;
+  Player public player1;
+  Player public player2;
 
-  uint currentRound;
+  uint public currentRound;
 
   GameState private state;
 
@@ -147,21 +147,28 @@ contract Game {
     public
     canReveal()
     {
-        // check that board length is valid
-        require(board.length == ships.length * 3);
-
         // work out which player we're dealing with
-        Player memory revealer;
-        Player memory mover;
-
         if (player1.id == msg.sender) {
-            revealer = player1;
-            mover = player2;
+            calculateHits(board, player1, player2);
         }
         else {
-            revealer = player2;
-            mover = player1;
+            calculateHits(board, player2, player1);
         }
+    }
+
+
+  /**
+   * Calculate no. of hits for a player.
+   *
+   * Helper function to `reveal()`.
+   *
+   * @param  {bytes} board  The board to reveal
+   * @param  {Player} revealer The player whose board it is
+   * @param  {Player} mover The opponent player whose hits to calculate
+   */
+  function calculateHits(bytes board, Player storage revealer, Player storage mover) internal {
+        // check that board length is valid
+        require(board.length == ships.length * 3);
 
         // board hash must match
         require(revealer.boardHash == calculateBoardHash(board));
@@ -206,7 +213,7 @@ contract Game {
         if (mover.revealed) {
             state = GameState.Over;
         }
-    }
+  }
 
 
    /**
