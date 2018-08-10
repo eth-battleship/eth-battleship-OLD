@@ -1,26 +1,29 @@
 pragma solidity ^0.4.23;
 
-contract Game {
+import "../installed_contracts/zeppelin/contracts/lifecycle/Destructible.sol";
 
-    /** Ship sizes, see https://www.hasbro.com/common/instruct/Battleship.PDF */
-    uint[1] public ships = [1];//[5,4,3,3,2];
+contract Game is Destructible {
+
+    /** Ship sizes */
+    bytes public ships;
 
     /**
      * Max. no of moves each player gets
      */
-  uint public constant maxRounds = 1;//30;
+  uint public maxRounds;
   /**
    * Board is a square, each side of this size.
    *
    * Note: Due to how we record player moves (by marking bits of a uint) the max board size is 16 (= sqrt(256)).
    */
-  uint public constant boardSize = 2;//10;
+  uint public boardSize;
+
+
 
   enum GameState {
       NeedOpponent,
-      WaitingForPlayer1,
-      WaitingForPlayer2,
-      RevealWinner,
+      WaitingForPlayer,
+      Reveal,
       Over
   }
 
@@ -43,6 +46,8 @@ contract Game {
   Player public player1;
   Player public player2;
 
+  uint public nextToPlay;
+
   uint public currentRound;
 
   GameState private state;
@@ -52,10 +57,12 @@ contract Game {
    * current sender is the next person to play in the game
    */
   modifier isNextToPlay () {
-      require(
-          (msg.sender == player1.id && state == GameState.WaitingForPlayer1) ||
-          (msg.sender == player2.id && state == GameState.WaitingForPlayer2));
-      _;
+    require(state == GameState.WaitingForPlayer);
+    require(
+      (msg.sender == player1.id && nextToPlay == 1) ||
+      (msg.sender == player2.id && nextToPlay == 2)
+    );
+    _;
   }
 
   /**
@@ -63,23 +70,41 @@ contract Game {
    * current sender is a player who is yet to call reveal()
    */
   modifier canReveal () {
+      require(state == GameState.WaitingForPlayer);
       require(
-          state == GameState.RevealWinner && (
-            (msg.sender == player1.id && !player1.revealed) ||
-            (msg.sender == player2.id && !player2.revealed)
-            )
-        );
+        (msg.sender == player1.id && !player1.revealed) ||
+        (msg.sender == player2.id && !player2.revealed)
+      );
       _;
+  }
+
+
+  /**
+   * Check that game can be joined.
+   */
+  modifier canJoin () {
+    require(state == GameState.NeedOpponent);
+    _;
   }
 
   /**
    * Initialize the game.
-   * @param boardHash_ Hash of player 1's board
+   * @param ships_ the ship sizes
+   * @param boardSize_ the width and height of the board square
+   * @param maxRounds_ the number of goes each player gets in total
+   * @param playerBoardHash_ Hash of player 1's board
    */
-  constructor (bytes32 boardHash_) public {
+  constructor (bytes ships_, uint boardSize_, uint maxRounds_, bytes32 playerBoardHash_) public {
+    require(1 <= ships_.length);
+    require(2 <= boardSize_ && 16 >= boardSize_);
+    require(1 <= maxRounds_ && (boardSize_ * boardSize_) >= maxRounds_);
+    // setup game
+    ships = ships_;
+    maxRounds = maxRounds_;
+    boardSize = boardSize_;
       // setup player1
       player1.id = msg.sender;
-      player1.boardHash = boardHash_;
+      player1.boardHash = playerBoardHash_;
       // we're awaiting confirmation of player2
       state = GameState.NeedOpponent;
   }
@@ -87,50 +112,61 @@ contract Game {
 
 
   /**
-   * Join the game (as player 2)
-   * @param boardHash_ Hash of player 2's board
+   * Join the game
+   * @param boardHash_ Hash of player's board
    */
-  function join(bytes32 boardHash_) public {
-      // ensure game can be joined
-      require(state == GameState.NeedOpponent);
-      // ensure either anyone can join or this specific player can join
-      require(player2.id == address(0) || player2.id == msg.sender);
-      // update player2 details
-      player2.id = msg.sender;
-      player2.boardHash = boardHash_;
-      // ready for player1 to make their first move
-      currentRound = 1;
-      state = GameState.WaitingForPlayer1;
+  function join(bytes32 boardHash_)
+    public
+    canJoin()
+  {
+      // allow player 1 to change their board whilst player 2 has not yet joined
+      if (player1.id == msg.sender) {
+        player1.boardHash = boardHash_;
+      } else {
+        // ensure this player is allowed to join
+        require(player2.id == address(0) || player2.id == msg.sender);
+
+        // update player2 details
+        player2.id = msg.sender;
+        player2.boardHash = boardHash_;
+
+        // game is now ready to start!
+        currentRound = 1;
+        nextToPlay = 1;
+        state = GameState.WaitingForPlayer;
+      }
   }
 
 
   /**
    * Play a move
    */
-  function playMove(uint x, uint y)
+  function playMove(uint x_, uint y_)
     public
     isNextToPlay()
   {
      // check that co-ordinates are valid
-     require(boardSize > x && boardSize > y);
+     require(boardSize > x_ && boardSize > y_);
+
+     uint move = calculateMove(x_, y_);
 
     // player 1 is moving!
-    if (state == GameState.WaitingForPlayer1) {
-        player1.moves |= calculateMove(x, y);
-        state = GameState.WaitingForPlayer2;
+    if (nextToPlay == 1) {
+        player1.moves |= move;
+        nextToPlay = 2;
     }
     // player 2 is moving!
     else {
-        player2.moves |= calculateMove(x, y);
+        player2.moves |= move;
 
         // got more rounds left?
         if (maxRounds > currentRound) {
-            state = GameState.WaitingForPlayer1;
+            nextToPlay == 1;
             currentRound += 1;
         }
         // else it's time to see who has won
         else {
-            state = GameState.RevealWinner;
+            state = GameState.Reveal;
         }
     }
   }
@@ -141,18 +177,18 @@ contract Game {
    * The `board` array is an array of triplets, whereby each triplet represents
    * a ship, specifying (x,y,isVertical).
    *
-   * @param board This player's board
+   * @param board_ This player's board
    */
-  function reveal(bytes board)
+  function reveal(bytes board_)
     public
     canReveal()
     {
         // work out which player we're dealing with
         if (player1.id == msg.sender) {
-            calculateHits(board, player1, player2);
+            calculateHits(board_, player1, player2);
         }
         else {
-            calculateHits(board, player2, player1);
+            calculateHits(board_, player2, player1);
         }
     }
 
@@ -162,38 +198,48 @@ contract Game {
    *
    * Helper function to `reveal()`.
    *
-   * @param  {bytes} board  The board to reveal
-   * @param  {Player} revealer The player whose board it is
-   * @param  {Player} mover The opponent player whose hits to calculate
+   * This can be called while there are still rounds left to play, if a player
+   * thnks they've already sunk all the opponent's ships.
+   *
+   *
+   * @param  board_  The board to reveal
+   * @param  revealer_ The player whose board it is
+   * @param  mover_ The opponent player whose hits to calculate
    */
-  function calculateHits(bytes board, Player storage revealer, Player storage mover) internal {
+  function calculateHits(bytes board_, Player storage revealer_, Player storage mover_) internal {
         // check that board length is valid
-        require(board.length == ships.length * 3);
+        require(board_.length == ships.length * 3);
 
         // board hash must match
-        require(revealer.boardHash == calculateBoardHash(board));
+        require(revealer_.boardHash == calculateBoardHash(board_));
 
-        // now let's count the hits for the mover and check board validity in one go
-        mover.hits = 0;
+        // now let's count the hits for the mover_ and check board validity in one go
+        mover_.hits = 0;
+
+        // keep track of whether all ships completely sunk
+        bool allShipsSunk = true;
 
         for (uint ship = 0; ships.length > ship; ship += 1) {
             // extract ship info
             uint index = 3 * ship;
-            uint x = uint(board[index]);
-            uint y = uint(board[index + 1]);
-            bool isVertical = (0 < uint(board[index + 2]));
-            uint shipSize = ships[ship];
+            uint x = uint(board_[index]);
+            uint y = uint(board_[index + 1]);
+            bool isVertical = (0 < uint(board_[index + 2]));
+            uint shipSize = uint(ships[ship]);
 
             // check validity of ship position
             require(0 <= x && boardSize > x);
             require(0 <= y && boardSize > y);
             require(boardSize >= ((isVertical ? x : y) + shipSize));
 
+            uint hits = 0;
+            uint steps = shipSize;
+
             // now let's see if there are hits
-            while (0 < shipSize) {
-                // did mover hit this position?
-                if (0 != (calculateMove(x, y) & mover.moves)) {
-                    mover.hits += 1;
+            while (0 < steps) {
+                // did mover_ hit this position?
+                if (0 != (calculateMove(x, y) & mover_.moves)) {
+                    hits += 1;
                 }
                 // move to next part of ship
                 if (isVertical) {
@@ -202,16 +248,23 @@ contract Game {
                     y += 1;
                 }
                 // decrement counter
-                shipSize -= 1;
+                steps -= 1;
             }
+
+            // add to mover hits
+            mover_.hits += 1;
+
+            // ship completely sunk?
+            allShipsSunk = allShipsSunk && (hits == shipSize);
         }
 
-        // update revealer state
-        revealer.revealed = true;
-
         // if both players have revealed then game is now over
-        if (mover.revealed) {
-            state = GameState.Over;
+        if (mover_.revealed) {
+          state = GameState.Over;
+        }
+        // if all ships sunk then shift game into reveal phase
+        else if (allShipsSunk) {
+          state = GameState.Reveal;
         }
   }
 
@@ -237,7 +290,7 @@ contract Game {
    * @param y Y coordinate
    * @return position in array
    */
-  function calculateMove(uint x, uint y) internal pure returns (uint) {
+  function calculateMove(uint x, uint y) internal view returns (uint) {
       return 2 ** (x * boardSize + y);
   }
 
