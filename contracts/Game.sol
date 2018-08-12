@@ -50,7 +50,7 @@ contract Game is Destructible {
 
   uint public currentRound;
 
-  GameState private state;
+  GameState public state;
 
   /**
    * Check that the game is still in play and that the
@@ -70,11 +70,8 @@ contract Game is Destructible {
    * current sender is a player who is yet to call reveal()
    */
   modifier canReveal () {
-      require(state == GameState.WaitingForPlayer);
-      require(
-        (msg.sender == player1.id && !player1.revealed) ||
-        (msg.sender == player2.id && !player2.revealed)
-      );
+      require(state == GameState.Reveal);
+      require(msg.sender == player1.id || msg.sender == player2.id);
       _;
   }
 
@@ -110,7 +107,6 @@ contract Game is Destructible {
   }
 
 
-
   /**
    * Join the game
    * @param boardHash_ Hash of player's board
@@ -141,7 +137,7 @@ contract Game is Destructible {
   /**
    * Play a move
    */
-  function playMove(uint x_, uint y_)
+  function play(uint x_, uint y_)
     public
     isNextToPlay()
   {
@@ -161,7 +157,7 @@ contract Game is Destructible {
 
         // got more rounds left?
         if (maxRounds > currentRound) {
-            nextToPlay == 1;
+            nextToPlay = 1;
             currentRound += 1;
         }
         // else it's time to see who has won
@@ -172,14 +168,14 @@ contract Game is Destructible {
   }
 
   /**
-   * Reveal the winner
+   * Check other player's hits.
    *
    * The `board` array is an array of triplets, whereby each triplet represents
    * a ship, specifying (x,y,isVertical).
    *
    * @param board_ This player's board
    */
-  function reveal(bytes board_)
+  function check(bytes board_)
     public
     canReveal()
     {
@@ -201,23 +197,16 @@ contract Game is Destructible {
    * This can be called while there are still rounds left to play, if a player
    * thnks they've already sunk all the opponent's ships.
    *
-   *
    * @param  board_  The board to reveal
    * @param  revealer_ The player whose board it is
    * @param  mover_ The opponent player whose hits to calculate
    */
   function calculateHits(bytes board_, Player storage revealer_, Player storage mover_) internal {
-        // check that board length is valid
-        require(board_.length == ships.length * 3);
-
         // board hash must match
         require(revealer_.boardHash == calculateBoardHash(board_));
 
         // now let's count the hits for the mover_ and check board validity in one go
         mover_.hits = 0;
-
-        // keep track of whether all ships completely sunk
-        bool allShipsSunk = true;
 
         for (uint ship = 0; ships.length > ship; ship += 1) {
             // extract ship info
@@ -252,19 +241,15 @@ contract Game is Destructible {
             }
 
             // add to mover hits
-            mover_.hits += 1;
-
-            // ship completely sunk?
-            allShipsSunk = allShipsSunk && (hits == shipSize);
+            mover_.hits = hits;
         }
+
+        // update state
+        revealer_.revealed = true;
 
         // if both players have revealed then game is now over
         if (mover_.revealed) {
           state = GameState.Over;
-        }
-        // if all ships sunk then shift game into reveal phase
-        else if (allShipsSunk) {
-          state = GameState.Reveal;
         }
   }
 

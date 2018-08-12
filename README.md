@@ -13,6 +13,7 @@ npm i -g truffle
 In the project folder, prepare the contracts:
 
 ```shell
+npm install
 truffle install zeppelin
 truffle compile
 ```
