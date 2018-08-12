@@ -23,6 +23,20 @@ const player2Board = '0x000101' // [0, 1, 1]
 const player2BoardHash = '0x7474de3473dbd611f09cfcd49dd8cfe9fae3a8d0cc2acf4bdf1e2f17d3a4484d'
 
 
+const validBoards = {
+  '0x000101': '0x7474de3473dbd611f09cfcd49dd8cfe9fae3a8d0cc2acf4bdf1e2f17d3a4484d',
+  '0x000001': '0x95dbad4637b631c083a4bbeef4e3d609c32941d9997a3aec4a123aaa0671f41b',
+  '0x000000': '0x99ff0d9125e1fc9531a11262e15aeb2c60509a078c4cc4c64cefdfb06ff68647',
+  '0x010000': '0xec58f3d8eaf702e8aa85662b02bda7f3c8e5a845b4d68b8245529ad6396c2431'
+}
+
+const invalidBoards = {
+  '0x000100': '0xe45e5a4917582ce5e520ebcff2b11411fbe99dadce43f67aae20fdd57e5675df',
+  '0x000001': '0xbce9e184d52afc063499f86cb758361bb2858f21e1b0189d0066b9d5a43de554',
+  '0x010001': '0x197cd09c75fbb6e42d6d40c065815ca1790ef56af23f88e0689403ee1924961d',
+  '0x010101': '0x197cd09c75fbb6e42d6d40c065815ca1790ef56af23f88e0689403ee1924961d'
+}
+
 contract('setup contract', accounts => {
   it('fails if less than one ship specified', async () => {
     let e
@@ -114,7 +128,9 @@ contract('helper functions', accounts => {
   it('.calculateBoardHash', async () => {
     const game = await Game.deployed()
 
-    await _assertRead(game.calculateBoardHash.call('0x000101'), '0x7474de3473dbd611f09cfcd49dd8cfe9fae3a8d0cc2acf4bdf1e2f17d3a4484d')
+    await Promise.all(Object.keys(validBoards).map(board => (
+      _assertRead(game.calculateBoardHash.call(board), validBoards[board])
+    )))
   })
 })
 
@@ -362,5 +378,61 @@ contract('check hits', accounts => {
       true,
       0
     ])
+  })
+
+  it('game is over once both teams have revealed', async () => {
+    await game.play(0, 1)
+    await game.play(0, 1, { from: accounts[1] })
+    await game.play(0, 0)
+    await game.play(0, 0, { from: accounts[1] })
+
+    await game.check(player2Board, { from: accounts[1] })
+    await game.check(player1Board, { from: accounts[0] })
+
+    await _assertRead(game.state, 3)
+  })
+
+  it('can count hits on vertical ships', async () => {
+    await game.play(0, 1)
+    await game.play(0, 1, { from: accounts[1] })
+    await game.play(1, 1)
+    await game.play(0, 0, { from: accounts[1] })
+
+    await game.check(player2Board, { from: accounts[1] })
+
+    await _assertRead(game.player1, [
+      accounts[0],
+      player1BoardHash,
+      2 | 8,
+      false,
+      2
+    ])
+  })
+})
+
+contract('detect invalid boards', accounts => {
+  const playMoves = async game => {
+    await game.play(0,0)
+    await game.play(1,1)
+  }
+
+  it('invalid boards', async () => {
+    const err = []
+
+    for (let board in invalidBoards) {
+      try {
+        const hash = invalidBoards[board]
+
+        const game = await Game.new(shipSizes, 2, 1, hash)
+        await game.join(hash, { from: accounts[1] })
+        await game.play(0,0)
+        await game.play(0,0, { from: accounts[1] })
+        await game.check(board)
+      } catch (e) {
+        err.push(e)
+      }
+    }
+
+    assert.equal(err.length, Object.keys(invalidBoards).length)
   })
 })
