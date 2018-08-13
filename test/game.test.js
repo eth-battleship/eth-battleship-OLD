@@ -223,7 +223,7 @@ contract('ready to join game', accounts => {
   })
 })
 
-contract.only('reveal moves', accounts => {
+contract('reveal moves', accounts => {
   let game
 
   beforeEach(async () => {
@@ -304,217 +304,99 @@ contract.only('reveal moves', accounts => {
   })
 })
 
+contract('reveal board', accounts => {
+  let game
 
-// contract('play moves', accounts => {
-//   let game
-//
-//   beforeEach(async () => {
-//     game = await Game.new(shipSizes, 2, 2, player1BoardHash)
-//     await game.join(player2BoardHash, { from: accounts[1] })
-//   })
-//
-//   it('must play a valid move', async () => {
-//     const err = []
-//
-//     try {
-//       await game.play(2, 0)
-//     } catch (e) {
-//       err.push(e)
-//     }
-//
-//     try {
-//       await game.play(0, 2)
-//     } catch (e) {
-//       err.push(e)
-//     }
-//
-//     assert.equal(err.length, 2)
-//   })
-//
-//   it('player 1 can play', async () => {
-//     await game.play(0, 0)
-//
-//     await _assertCall(game.state, 1)
-//     await _assertCall(game.currentRound, 1)
-//     await _assertCall(game.nextToPlay, 2)
-//     await _assertCall(game.player1, [
-//       accounts[0],
-//       player1BoardHash,
-//       1,
-//       false,
-//       0
-//     ])
-//   })
-//
-//   it('player 1 cannot play twice', async () => {
-//     let err
-//
-//     await game.play(0, 0)
-//
-//     try {
-//       await game.play(0, 0)
-//     } catch (e) {
-//       err = e
-//     }
-//
-//     assert.isDefined(err)
-//   })
-//
-//   it('round advances once player 2 plays', async () => {
-//     await game.play(0, 0)
-//     await game.play(1, 0, { from: accounts[1] })
-//
-//     await _assertCall(game.state, 1)
-//     await _assertCall(game.nextToPlay, 1)
-//     await _assertCall(game.currentRound, 2)
-//     await _assertCall(game.player1, [
-//       accounts[0],
-//       player1BoardHash,
-//       1,
-//       false,
-//       0
-//     ])
-//     await _assertCall(game.player2, [
-//       accounts[1],
-//       player2BoardHash,
-//       4,
-//       false,
-//       0
-//     ])
-//   })
-//
-//   it('game automatically goes to reveal state once rounds are done', async () => {
-//     await game.play(0, 0)
-//     await game.play(1, 0, { from: accounts[1] })
-//     await game.play(0, 1)
-//     await game.play(1, 1, { from: accounts[1] })
-//
-//     await _assertCall(game.state, 2)
-//     await _assertCall(game.currentRound, 2)
-//   })
-// })
-//
-// contract('check hits', accounts => {
-//   let game
-//
-//   beforeEach(async () => {
-//     game = await Game.new(shipSizes, 2, 2, player1BoardHash)
-//     await game.join(player2BoardHash, { from: accounts[1] })
-//   })
-//
-//   it('cannot check whilst play in progress', async () => {
-//     await game.play(0, 0)
-//
-//     let err
-//
-//     try {
-//       await game.check(player2BoardHash, { from: accounts[1] })
-//     } catch (e) {
-//       err = e
-//     }
-//
-//     assert.isDefined(err)
-//   })
-//
-//   it('requires valid board', async () => {
-//     await game.play(0, 1)
-//     await game.play(0, 1, { from: accounts[1] })
-//     await game.play(0, 0)
-//     await game.play(0, 0, { from: accounts[1] })
-//
-//     let err
-//
-//     try {
-//       await game.check(player2Board)
-//     } catch (e) {
-//       err = e
-//     }
-//
-//     assert.isDefined(err)
-//   })
-//
-//   it('counts the hits', async () => {
-//     await game.play(0, 1)
-//     await game.play(0, 1, { from: accounts[1] })
-//     await game.play(0, 0)
-//     await game.play(0, 0, { from: accounts[1] })
-//
-//     await game.check(player2Board, { from: accounts[1] })
-//
-//     await _assertCall(game.state, 2)
-//     await _assertCall(game.currentRound, 2)
-//     await _assertCall(game.player1, [
-//       accounts[0],
-//       player1BoardHash,
-//       2 | 1,
-//       false,
-//       1
-//     ])
-//
-//     await game.check(player1Board, { from: accounts[0] })
-//
-//     await _assertCall(game.player2, [
-//       accounts[1],
-//       player2BoardHash,
-//       2 | 1,
-//       true,
-//       0
-//     ])
-//   })
-//
-//   it('game is over once both teams have revealed', async () => {
-//     await game.play(0, 1)
-//     await game.play(0, 1, { from: accounts[1] })
-//     await game.play(0, 0)
-//     await game.play(0, 0, { from: accounts[1] })
-//
-//     await game.check(player2Board, { from: accounts[1] })
-//     await game.check(player1Board, { from: accounts[0] })
-//
-//     await _assertCall(game.state, 3)
-//   })
-//
-//   it('can count hits on vertical ships', async () => {
-//     await game.play(0, 1)
-//     await game.play(0, 1, { from: accounts[1] })
-//     await game.play(1, 1)
-//     await game.play(0, 0, { from: accounts[1] })
-//
-//     await game.check(player2Board, { from: accounts[1] })
-//
-//     await _assertCall(game.player1, [
-//       accounts[0],
-//       player1BoardHash,
-//       2 | 8,
-//       false,
-//       2
-//     ])
-//   })
-// })
-//
-// contract('detect invalid boards', accounts => {
-//   const playMoves = async game => {
-//     await game.play(0,0)
-//     await game.play(1,1)
-//   }
-//
-//   it('invalid boards', async () => {
-//     const err = []
-//
-//     for (let board in invalidBoards) {
-//       try {
-//         const hash = invalidBoards[board]
-//
-//         const game = await Game.new(shipSizes, 2, 1, hash)
-//         await game.join(hash, { from: accounts[1] })
-//         await game.play(0,0)
-//         await game.play(0,0, { from: accounts[1] })
-//         await game.check(board)
-//       } catch (e) {
-//         err.push(e)
-//       }
-//     }
-//
-//     assert.equal(err.length, Object.keys(invalidBoards).length)
-//   })
-// })
+  beforeEach(async () => {
+    game = await Game.new(shipSizes, 2, 2, player1BoardHash)
+    await game.join(player2BoardHash, { from: accounts[1] })
+  })
+
+  it('cannot reveal whilst play in progress', async () => {
+    let err
+
+    try {
+      await game.revealBoard(player1Board)
+    } catch (e) {
+      err = e
+    }
+
+    assert.isDefined(err)
+  })
+
+  describe('once moves are revealed', () => {
+    beforeEach(async () => {
+      await game.revealMoves(3, { from: accounts[0] }) // 011
+      await game.revealMoves(3, { from: accounts[1] }) // 011
+    })
+
+    it('still requires a valid board', async () => {
+      let err
+
+      try {
+        await game.revealBoard(player2Board)
+      } catch (e) {
+        err = e
+      }
+
+      assert.isDefined(err)
+    })
+
+    it('updates state', async () => {
+      await game.revealBoard(player1Board)
+
+      await _assertCall(game.players.call(accounts[0]), [
+        player1Board,
+        player1BoardHash,
+        3,
+        0,
+        3
+      ])
+
+      await _assertCall(game.state, 2)
+    })
+
+    it('calculates opponent hits', async () => {
+      await game.revealBoard(player1Board)
+
+      await _assertCall(game.players.call(accounts[1]), [
+        '0x',
+        player2BoardHash,
+        3,
+        0,
+        2
+      ])
+
+      await game.revealBoard(player2Board, { from: accounts[1] })
+
+      await _assertCall(game.players.call(accounts[0]), [
+        player1Board,
+        player1BoardHash,
+        3,
+        1,
+        3
+      ])
+    })
+
+    it('cannot reveal more than once', async () => {
+      await game.revealBoard(player1Board)
+
+      let err;
+
+      try {
+        await game.revealBoard(player1Board)
+      } catch (e) {
+        err = e;
+      }
+
+      assert.isDefined(err)
+    })
+
+    it('updates game state once both players have revealed', async () => {
+      await game.revealBoard(player1Board)
+      await game.revealBoard(player2Board, { from: accounts[1] })
+
+      await _assertCall(game.state, 3);
+    })
+  })
+})

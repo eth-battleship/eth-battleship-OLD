@@ -182,11 +182,13 @@ contract Game {
     players[msg.sender].board = board_;
     players[msg.sender].state = PlayerState.RevealedBoard;
 
+    address opponent = (player1 == msg.sender) ? player2 : player1;
+
     // calculate opponent's hits
-    calculateHits(players[msg.sender], players[player1 == msg.sender ? player2 : player1]);
+    calculateHits(players[msg.sender], players[opponent]);
 
     // if opponent has also already revealed board then update game state
-    if (players[msg.sender == player1 ? player2 : player1].state == PlayerState.RevealedBoard) {
+    if (players[opponent].state == PlayerState.RevealedBoard) {
       state = GameState.Over;
     }
   }
