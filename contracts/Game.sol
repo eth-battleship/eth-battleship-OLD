@@ -1,8 +1,6 @@
 pragma solidity ^0.4.23;
 
-import "../installed_contracts/zeppelin/contracts/lifecycle/Destructible.sol";
-
-contract Game is Destructible {
+contract Game {
 
     /** Ship sizes */
     bytes public ships;
@@ -18,17 +16,24 @@ contract Game is Destructible {
    */
   uint public boardSize;
 
-
-
   enum GameState {
       NeedOpponent,
-      WaitingForPlayer,
+      Playing,
       Reveal,
       Over
   }
 
+  enum PlayerState {
+    Ready,
+    Playing,
+    RevealedMoves,
+    RevealedBoard
+  }
+
   struct Player {
-      address id;
+      // player's board (will be set later)
+      bytes board;
+      // hash of player's board (should be obtained via calculateBoardHash)
       bytes32 boardHash;
       /*
        Since we're doing a 10x10 grid that's 100 spaces, so a 256-bit integer
@@ -39,40 +44,43 @@ contract Game is Destructible {
        used as well as for faster board comparision later on.
       */
       uint moves;
-      bool revealed;
+      // no. of hits player has scored against opponent
       uint hits;
+      // player state
+      PlayerState state;
   }
 
-  Player public player1;
-  Player public player2;
+  // players
+  mapping (address => Player) public players;
+  address private player1;
+  address private player2;
 
-  uint public nextToPlay;
-
+  // the current game round
   uint public currentRound;
 
+  // current game state
   GameState public state;
-
-  /**
-   * Check that the game is still in play and that the
-   * current sender is the next person to play in the game
-   */
-  modifier isNextToPlay () {
-    require(state == GameState.WaitingForPlayer);
-    require(
-      (msg.sender == player1.id && nextToPlay == 1) ||
-      (msg.sender == player2.id && nextToPlay == 2)
-    );
-    _;
-  }
 
   /**
    * Check that the game can be revealed and that the
    * current sender is a player who is yet to call reveal()
    */
-  modifier canReveal () {
-      require(state == GameState.Reveal);
-      require(msg.sender == player1.id || msg.sender == player2.id);
+  modifier canRevealMoves () {
+      require(state == GameState.Playing);
+      // check that it's a valid player who hasn't yet revealed moves
+      require(players[msg.sender].state == PlayerState.Playing);
       _;
+  }
+
+
+  /**
+   * Check that boards can be revealed.
+   */
+  modifier canRevealBoard () {
+    require(state == GameState.Reveal);
+    // check that it's a valid player who hasn't yet revealed their board
+    require(players[msg.sender].state == PlayerState.RevealedMoves);
+    _;
   }
 
 
@@ -81,17 +89,20 @@ contract Game is Destructible {
    */
   modifier canJoin () {
     require(state == GameState.NeedOpponent);
+    require(address(0) == player2);
+    require(msg.sender != player1);
     _;
   }
+
 
   /**
    * Initialize the game.
    * @param ships_ the ship sizes
    * @param boardSize_ the width and height of the board square
    * @param maxRounds_ the number of goes each player gets in total
-   * @param playerBoardHash_ Hash of player 1's board
+   * @param boardHash_ Hash of player's board
    */
-  constructor (bytes ships_, uint boardSize_, uint maxRounds_, bytes32 playerBoardHash_) public {
+  constructor (bytes ships_, uint boardSize_, uint maxRounds_, bytes32 boardHash_) public {
     require(1 <= ships_.length);
     require(2 <= boardSize_ && 16 >= boardSize_);
     require(1 <= maxRounds_ && (boardSize_ * boardSize_) >= maxRounds_);
@@ -99,11 +110,12 @@ contract Game is Destructible {
     ships = ships_;
     maxRounds = maxRounds_;
     boardSize = boardSize_;
-      // setup player1
-      player1.id = msg.sender;
-      player1.boardHash = playerBoardHash_;
-      // we're awaiting confirmation of player2
-      state = GameState.NeedOpponent;
+    // setup player
+    player1 = msg.sender;
+    players[player1].boardHash = boardHash_;
+    players[player1].state = PlayerState.Playing;
+    // game state
+    state = GameState.NeedOpponent;
   }
 
 
@@ -115,78 +127,69 @@ contract Game is Destructible {
     public
     canJoin()
   {
-      // allow player 1 to change their board whilst player 2 has not yet joined
-      if (player1.id == msg.sender) {
-        player1.boardHash = boardHash_;
-      } else {
-        // ensure this player is allowed to join
-        require(player2.id == address(0) || player2.id == msg.sender);
-
-        // update player2 details
-        player2.id = msg.sender;
-        player2.boardHash = boardHash_;
-
-        // game is now ready to start!
-        currentRound = 1;
-        nextToPlay = 1;
-        state = GameState.WaitingForPlayer;
-      }
+    // add player
+    player2 = msg.sender;
+    players[player2].boardHash = boardHash_;
+    players[player2].state = PlayerState.Playing;
+    // game state
+    state = GameState.Playing;
+    currentRound = 1;
   }
 
 
   /**
-   * Play a move
-   */
-  function play(uint x_, uint y_)
-    public
-    isNextToPlay()
-  {
-     // check that co-ordinates are valid
-     require(boardSize > x_ && boardSize > y_);
-
-     uint move = calculateMove(x_, y_);
-
-    // player 1 is moving!
-    if (nextToPlay == 1) {
-        player1.moves |= move;
-        nextToPlay = 2;
-    }
-    // player 2 is moving!
-    else {
-        player2.moves |= move;
-
-        // got more rounds left?
-        if (maxRounds > currentRound) {
-            nextToPlay = 1;
-            currentRound += 1;
-        }
-        // else it's time to see who has won
-        else {
-            state = GameState.Reveal;
-        }
-    }
-  }
-
-  /**
-   * Check other player's hits.
+   * Reveal moves.
+   * The moves are represented a 256-bit uint. For a given move (x, y) the
+   * bit position is calculated as 2^(boardSize * x + y)
    *
-   * The `board` array is an array of triplets, whereby each triplet represents
+   * @param moves_ The moves by this player (each bit represents a move)
+   */
+  function revealMoves(uint moves_)
+    public
+    canRevealMoves()
+  {
+    // no. of moves should not be more than max rounds, but can be less since
+    // player may have already sunk all of opponent's ships early on
+    require(countBits(moves_) <= maxRounds);
+
+    // update player
+    players[msg.sender].moves = moves_;
+    players[msg.sender].state = PlayerState.RevealedMoves;
+
+    // if opponent has also already revealed moves then update game state
+    if (players[msg.sender == player1 ? player2 : player1].state == PlayerState.RevealedMoves) {
+      state = GameState.Reveal;
+    }
+  }
+
+
+  /**
+   * Reveal board.
+   *
+   * The board array is an array of triplets, whereby each triplet represents
    * a ship, specifying (x,y,isVertical).
    *
-   * @param board_ This player's board
+   * @param board_ This player's board as an array
    */
-  function check(bytes board_)
+  function revealBoard(bytes board_)
     public
-    canReveal()
-    {
-        // work out which player we're dealing with
-        if (player1.id == msg.sender) {
-            calculateHits(board_, player1, player2);
-        }
-        else {
-            calculateHits(board_, player2, player1);
-        }
+    canRevealBoard()
+  {
+    // board hash must match
+    assert(players[msg.sender].boardHash == calculateBoardHash(ships, boardSize, board_));
+
+    // update player
+    players[msg.sender].board = board_;
+    players[msg.sender].state = PlayerState.RevealedBoard;
+
+    // calculate opponent's hits
+    calculateHits(players[msg.sender], players[player1 == msg.sender ? player2 : player1]);
+
+    // if opponent has also already revealed board then update game state
+    if (players[msg.sender == player1 ? player2 : player1].state == PlayerState.RevealedBoard) {
+      state = GameState.Over;
     }
+  }
 
 
   /**
@@ -197,60 +200,37 @@ contract Game is Destructible {
    * This can be called while there are still rounds left to play, if a player
    * thnks they've already sunk all the opponent's ships.
    *
-   * @param  board_  The board to reveal
    * @param  revealer_ The player whose board it is
    * @param  mover_ The opponent player whose hits to calculate
    */
-  function calculateHits(bytes board_, Player storage revealer_, Player storage mover_) internal {
-        // board hash must match
-        require(revealer_.boardHash == calculateBoardHash(board_));
+  function calculateHits(Player storage revealer_, Player storage mover_) internal {
+    // now let's count the hits for the mover and check board validity in one go
+    mover_.hits = 0;
 
-        // now let's count the hits for the mover_ and check board validity in one go
-        mover_.hits = 0;
+    for (uint ship = 0; ships.length > ship; ship += 1) {
+        // extract ship info
+        uint index = 3 * ship;
+        uint x = uint(revealer_.board[index]);
+        uint y = uint(revealer_.board[index + 1]);
+        bool isVertical = (0 < uint(revealer_.board[index + 2]));
+        uint shipSize = uint(ships[ship]);
 
-        for (uint ship = 0; ships.length > ship; ship += 1) {
-            // extract ship info
-            uint index = 3 * ship;
-            uint x = uint(board_[index]);
-            uint y = uint(board_[index + 1]);
-            bool isVertical = (0 < uint(board_[index + 2]));
-            uint shipSize = uint(ships[ship]);
-
-            // check validity of ship position
-            require(0 <= x && boardSize > x);
-            require(0 <= y && boardSize > y);
-            require(boardSize >= ((isVertical ? x : y) + shipSize));
-
-            uint hits = 0;
-            uint steps = shipSize;
-
-            // now let's see if there are hits
-            while (0 < steps) {
-                // did mover_ hit this position?
-                if (0 != (calculateMove(x, y) & mover_.moves)) {
-                    hits += 1;
-                }
-                // move to next part of ship
-                if (isVertical) {
-                    x += 1;
-                } else {
-                    y += 1;
-                }
-                // decrement counter
-                steps -= 1;
+        // now let's see if there are hits
+        while (0 < shipSize) {
+            // did mover_ hit this position?
+            if (0 != (calculateMove(boardSize, x, y) & mover_.moves)) {
+                mover_.hits += 1;
             }
-
-            // add to mover hits
-            mover_.hits = hits;
+            // move to next part of ship
+            if (isVertical) {
+                x += 1;
+            } else {
+                y += 1;
+            }
+            // decrement counter
+            shipSize -= 1;
         }
-
-        // update state
-        revealer_.revealed = true;
-
-        // if both players have revealed then game is now over
-        if (mover_.revealed) {
-          state = GameState.Over;
-        }
+    }
   }
 
 
@@ -270,23 +250,61 @@ contract Game is Destructible {
   */
 
   /**
+   * Count no. of its in given number.
+   *
+   * Algorithm: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
+   *
+   * @param num_ Number to count bits in.
+   * @return no. of bits
+   */
+  function countBits(uint num_) public pure returns (uint) {
+    uint c;
+
+    for (c = 0; 0 < num_; num_ >>= 1) {
+      c += (num_ & 1);
+    }
+
+    return c;
+  }
+
+
+  /**
    * Calculate the bitwise position of given XY coordinate.
-   * @param x X coordinate
-   * @param y Y coordinate
+   * @param boardSize_ board size
+   * @param x_ X coordinate
+   * @param y_ Y coordinate
    * @return position in array
    */
-  function calculateMove(uint x, uint y) internal view returns (uint) {
-      return 2 ** (x * boardSize + y);
+  function calculateMove(uint boardSize_, uint x_, uint y_) public pure returns (uint) {
+      return 2 ** (x_ * boardSize_ + y_);
   }
+
 
   /**
    * Calculate board hash.
    *
-   * @param board Array representing the board
+   * This will check that the board is valid before calculating the hash
+   *
+   * @param ships_ Array representing ship sizes
+   * @param boardSize_ Size of board's sides
+   * @param board_ Array representing the board
    * @return the SHA3 hash
    */
-  function calculateBoardHash(bytes board) public pure returns (bytes32) {
-      return keccak256(board);
-  }
+  function calculateBoardHash(bytes ships_, uint boardSize_, bytes board_) public pure returns (bytes32) {
+    // check that board setup is valid
+    for (uint s = 0; ships_.length > s; s += 1) {
+      // extract ship info
+      uint index = 3 * s;
+      uint x = uint(board_[index]);
+      uint y = uint(board_[index + 1]);
+      bool isVertical = (0 < uint(board_[index + 2]));
+      uint shipSize = uint(ships_[s]);
+      // check validity of ship position
+      assert(0 <= x && boardSize_ > x);
+      assert(0 <= y && boardSize_ > y);
+      assert(boardSize_ >= ((isVertical ? x : y) + shipSize));
+    }
 
+    return keccak256(board_);
+  }
 }
