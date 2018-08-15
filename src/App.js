@@ -1,12 +1,13 @@
 import React, { PureComponent } from 'react'
-// import GameContract from '../build/contracts/Game.json'
+
 import getWeb3 from './utils/getWeb3'
+import { Router } from './nav'
 
 import './css/oswald.css'
 import './css/open-sans.css'
 import './css/pure-min.css'
-
 import styles from './App.styl'
+
 
 export default class App extends PureComponent {
   state = {
@@ -14,7 +15,7 @@ export default class App extends PureComponent {
     web3Error: null
   }
 
-  componentDidMount() {
+  componentDidMount () {
     // Get network provider and web3 instance.
     // See utils/getWeb3 for more info.
 
@@ -29,7 +30,7 @@ export default class App extends PureComponent {
       })
       .catch(() => {
         this.setState({
-          web3Error: 'Unable to detect web3 provider instance. Ensure you have MetaMask installed or that you are viewing this page within a Dapp browser.'
+          web3Error: true
         })
       })
   }
@@ -51,13 +52,33 @@ export default class App extends PureComponent {
   //   })
   // }
   //
-  render() {
-    // const { web3Error, web3 } = this.state
+  render () {
+    const { web3Error } = this.state
+
+    let content
+
+    if (!web3Error) {
+      content = (
+        <div className={styles.web3Error}>
+          Unable to detect web3 provider instance. Ensure you have MetaMask
+          installed or that you are viewing this page within a Dapp browser.
+        </div>
+      )
+    } else {
+      content = <Router />
+    }
 
     return (
-      <div className={styles.web3Error}>
-        Not found!
-      </div>
+      <main>
+        <header>
+          <div className={styles.brand}>
+            Blockchain Battleship!
+          </div>
+        </header>
+        <section className={styles.content}>
+          {content}
+        </section>
+      </main>
     )
   }
 }
