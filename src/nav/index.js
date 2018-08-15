@@ -1,11 +1,16 @@
 import React from 'react'
-import { BrowserRouter } from 'react-router-dom'
-import { Route } from 'react-router'
+import { Switch, Route } from 'react-router'
+import { ConnectedRouter } from 'connected-react-router'
 
+import { getHistory } from '../redux'
 import Home from '../pages/Home'
+import NewGame from '../pages/NewGame'
 
 export const Router = () => (
-  <BrowserRouter>
-    <Route path="/" component={Home}/>
-  </BrowserRouter>
+  <ConnectedRouter history={getHistory()}>
+    <Switch>
+      <Route exact path="/" component={Home}/>
+      <Route path="/new" component={NewGame}/>
+    </Switch>
+  </ConnectedRouter>
 )

@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 
 import getWeb3 from './utils/getWeb3'
 import { Router } from './nav'
+import { connectStore } from './redux'
 
 import './css/oswald.css'
 import './css/open-sans.css'
@@ -9,6 +10,7 @@ import './css/pure-min.css'
 import styles from './App.styl'
 
 
+@connectStore('router')
 export default class App extends PureComponent {
   state = {
     web3: null,
@@ -23,14 +25,11 @@ export default class App extends PureComponent {
       .then(results => {
         this.setState({
           web3: results.web3
-        }, () => {
-          // Instantiate contract once web3 provided.
-          this.instantiateContract()
         })
       })
-      .catch(() => {
+      .catch(web3Error => {
         this.setState({
-          web3Error: true
+          web3Error
         })
       })
   }
@@ -57,11 +56,14 @@ export default class App extends PureComponent {
 
     let content
 
-    if (!web3Error) {
+    if (web3Error) {
       content = (
         <div className={styles.web3Error}>
-          Unable to detect web3 provider instance. Ensure you have MetaMask
-          installed or that you are viewing this page within a Dapp browser.
+          <p>
+            Unable to detect web3 provider instance. Ensure you have MetaMask
+            installed or that you are viewing this page within a Dapp browser.
+          </p>
+          <p>{`${web3Error}`}</p>
         </div>
       )
     } else {

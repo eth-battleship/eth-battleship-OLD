@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   bindActionCreators,
   applyMiddleware,
@@ -5,6 +6,9 @@ import {
   combineReducers,
   createStore
 } from 'redux'
+import { connect } from 'react-redux'
+import { createBrowserHistory } from 'history'
+import { connectRouter, routerMiddleware } from 'connected-react-router'
 
 import actionCreators from './actionCreators'
 import selectors from './selectors'
@@ -12,15 +16,25 @@ import { createReducers } from './reducers'
 import { createMiddleware } from './middleware'
 
 let store
+const history = createBrowserHistory()
+
+export const getHistory = () => history
 
 export const setupStore = app => {
   const appMiddleware = createMiddleware(app)
   const reducers = createReducers(app)
 
-  store = compose(
-    applyMiddleware(...appMiddleware),
-    window && window.devToolsExtension ? window.devToolsExtension() : f => f
-  )(createStore)(combineReducers(reducers))
+  store = createStore(
+    connectRouter(history)(combineReducers(reducers)), // new root reducer with router state
+    undefined,
+    compose(
+      applyMiddleware(
+        routerMiddleware(history), // for dispatching history actions
+        ...appMiddleware
+      ),
+      window && window.devToolsExtension ? window.devToolsExtension() : f => f
+    )
+  )
 
   // hot module reload
   if (window.__DEV__) {
@@ -40,7 +54,48 @@ export const setupStore = app => {
     {}
   )
 
+  // store.subscribe(() => {
+  //   console.warn(JSON.stringify(store.getState(), null, 2))
+  // })
+
   return store
 }
 
-export const getStore = () => store
+export const connectStore = (...storeSubParts) => Component =>
+  connect(
+    // mapStateToProps
+    state => {
+      const stateParts = Object.keys(state)
+      const requestedParts = storeSubParts
+
+      const missing = _.difference(requestedParts, stateParts)
+      if (missing.length) {
+        throw new Error(`Invalid store sub-parts requested: ${missing.join(' ')}`)
+      }
+
+      return _.reduce(
+        state,
+        (m, item, key) => {
+          if (!storeSubParts.length || storeSubParts.includes(key)) {
+            return {
+              ...m,
+              [key]: item
+            }
+          }
+
+          return m
+        },
+        {}
+      )
+    },
+    // mapDispatchToProps
+    null,
+    (stateProps, dispatchProps, ownProps) => ({
+      ...stateProps,
+      ...ownProps,
+      dispatch: store.dispatch,
+      actions: store.actions,
+      selectors: store.selectors
+    }),
+    { withRef: true }
+  )(Component)

@@ -1,4 +1,6 @@
-const reducers = {}
+import game from './game/reducer'
+
+const reducers = { game }
 
 export const createReducers = app =>
   Object.keys(reducers).reduce(
@@ -6,7 +8,5 @@ export const createReducers = app =>
       ...m,
       [key]: reducers[key](app)
     }),
-    {
-      dummy: () => () => {}
-    }
+    {}
   )
