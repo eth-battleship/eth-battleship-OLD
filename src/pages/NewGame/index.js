@@ -7,8 +7,12 @@ export default class NewGame extends PureComponent {
   render () {
     return (
       <div>
-        New game
+        <button onClick={this._onStartGame}>Start game</button>
       </div>
     )
+  }
+
+  _onStartGame = () => {
+    this.props.actions.createNewGame()
   }
 }

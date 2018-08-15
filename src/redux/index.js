@@ -61,6 +61,8 @@ export const setupStore = app => {
   return store
 }
 
+export const getStore = () => store
+
 export const connectStore = (...storeSubParts) => Component =>
   connect(
     // mapStateToProps
