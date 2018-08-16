@@ -29,7 +29,7 @@ export const shipSitsOn = (ship, shipLength, x, y) => {
   return (startX <= x && startY <= y && endX >= x && endY >= y)
 }
 
-const calculateEndPosition = (sx, sy, isVertical, length) => {
+export const calculateShipEndPoint = (sx, sy, isVertical, length) => {
   const x = sx + (isVertical ? (length - 1) : 0)
   const y = sy + (isVertical ? 0 : (length - 1))
 
@@ -64,7 +64,7 @@ const linesIntersect = (x1, y1, x2, y2, x3, y3, x4, y4) => {
 export const shipCanBePlaced = (
   boardLength, existingShipPositions, shipLengths, shipId, isVertical, x, y
 ) => {
-  const { x: endX, y: endY } = calculateEndPosition(x, y, isVertical, shipLengths[shipId])
+  const { x: endX, y: endY } = calculateShipEndPoint(x, y, isVertical, shipLengths[shipId])
 
   // within board confines?
   if (!(boardLength > endX && boardLength > endY)) {
@@ -78,7 +78,7 @@ export const shipCanBePlaced = (
     const { x: sx, y: sy, isVertical: sv } = existingShipPositions[existingShipId]
     const sl = shipLengths[existingShipId]
 
-    const { x: endSX, y: endSY } = calculateEndPosition(sx, sy, sv, sl)
+    const { x: endSX, y: endSY } = calculateShipEndPoint(sx, sy, sv, sl)
 
     clash = clash || linesIntersect(x, y, endX, endY, sx, sy, endSX, endSY)
   })

@@ -3,7 +3,7 @@ import React, { PureComponent } from 'react'
 import { connectStore } from '../../redux'
 import GameBoard from '../../components/GameBoard'
 import Ship from '../../components/Ship'
-import { getColor, shipSitsOn, shipCanBePlaced } from '../../utils/ships'
+import { getColor, shipSitsOn, shipCanBePlaced, calculateShipEndPoint } from '../../utils/ships'
 
 import styles from './index.styl'
 
@@ -110,20 +110,26 @@ export default class NewGame extends PureComponent {
   }
 
   _applyHoverStyleToEmptyCell = (style, x, y, hoverX, hoverY) => {
-    if (x !== hoverX || y !== hoverY) {
-      return
-    }
-
     const { boardLength, shipLengths, shipPositions, selectedShip } = this.state
 
     if (selectedShip) {
       const { shipId, isVertical } = selectedShip
 
-      if (shipCanBePlaced(boardLength, shipPositions, shipLengths, shipId, isVertical, x, y)) {
-        const color = getColor(shipLengths[selectedShip.shipId])
+      if (shipCanBePlaced(
+        boardLength, shipPositions, shipLengths, shipId, isVertical, hoverX, hoverY
+      )) {
+        const { x: endX, y: endY } =
+          calculateShipEndPoint(hoverX, hoverY, isVertical, shipLengths[shipId])
 
-        // eslint-disable-next-line no-param-reassign
-        style.outline = `5px solid ${color}`
+        // if current cell intersects potential ship position
+        if ((hoverX <= x && endX >= x) && (hoverY <= y && endY >= y)) {
+          const color = getColor(shipLengths[selectedShip.shipId])
+
+          // eslint-disable-next-line no-param-reassign
+          style.border = `1px solid ${color}`
+          // eslint-disable-next-line no-param-reassign
+          style.backgroundColor = color
+        }
       }
     }
   }
