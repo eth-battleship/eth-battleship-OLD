@@ -12,4 +12,4 @@ export const getGameContract = async (web3, accounts) => {
   return c
 }
 
-export const isSameAddress = (a1, a2) => a1.toLowerCase() === a2.toLowerCase()
+export const isSameAddress = (a1, a2) => a1 && a2 && a1.toLowerCase() === a2.toLowerCase()

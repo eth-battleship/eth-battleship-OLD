@@ -1,9 +1,34 @@
-import { CREATE_GAME, WATCH_GAME } from './actions'
+import { CREATE_GAME, WATCH_GAME, LOAD_ACTIVE_GAMES } from './actions'
+import { GAME_STATUS } from '../../utils/constants'
 import { getStore } from '../'
 import { getGameContract, isSameAddress } from '../../utils/contract'
 import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/ships'
 import { encrypt, decrypt } from '../../utils/crypto'
 import cloudDb from '../../cloudDb'
+
+const _processGames = (games, authKey, address) => {
+  let promise = Promise.resolve()
+
+  if (authKey) {
+    promise = Promise.all(Object.keys(games).map(gameId => {
+      const game = games[gameId]
+
+      if (GAME_STATUS.OVER !== game.status) {
+        if (isSameAddress(game.player1, address)) {
+          return decrypt(authKey, game.player1Data.board)
+            .then(plaintext => { game.player1Data.board.plaintext = plaintext })
+        } else if (isSameAddress(game.player2, address)) {
+          return decrypt(authKey, game.player2Data.board)
+            .then(plaintext => { game.player2Data.board.plaintext = plaintext })
+        }
+      }
+
+      return Promise.resolve()
+    }))
+  }
+
+  return promise.then(() => games)
+}
 
 // eslint-disable-next-line consistent-return
 export default () => () => next => async action => {
@@ -12,36 +37,44 @@ export default () => () => next => async action => {
   const { selectors: {
     getWeb3,
     getAccounts,
-    getAuthKey
+    getNetwork,
+    getAuthKey,
+    getAuthKeyPromise
   } } = store
 
-  const authKey = getAuthKey()
-  const accounts = getAccounts()
-  const web3 = getWeb3()
-
   switch (action.type) {
+    case LOAD_ACTIVE_GAMES: {
+      await getAuthKeyPromise()
+
+      const games = await cloudDb.loadActiveGames(getNetwork())
+
+      await _processGames(games, getAuthKey(), getAccounts()[0])
+
+      return games
+    }
     case WATCH_GAME: {
+      await getAuthKeyPromise()
+
       const { id, callback } = action.payload
 
-      return cloudDb.watchGame(id, async snapshot => {
-        const doc = snapshot.data()
-
-        try {
-          if (authKey) {
-            if (doc.player1 && isSameAddress(doc.player1.address, accounts[0])) {
-              doc.player1.board.plaintext = await decrypt(authKey, doc.player1.board)
-            } else if (doc.player2 && isSameAddress(doc.player2.address, accounts[0])) {
-              doc.player2.board.plaintext = await decrypt(authKey, doc.player2.board)
-            }
-          }
-        } catch (err) {
-          console.error('Error sanitizing game info', err)
-        } finally {
-          callback(doc)
-        }
+      return cloudDb.watchGame(id, game => {
+        _processGames([ game ], getAuthKey(), getAccounts()[0])
+          .catch(err => {
+            console.error('Error sanitizing game info', err)
+          })
+          .then(() => {
+            callback(game)
+          })
       })
     }
     case CREATE_GAME: {
+      await getAuthKeyPromise()
+
+      const authKey = getAuthKey()
+      const network = getNetwork()
+      const accounts = getAccounts()
+      const web3 = getWeb3()
+
       const Game = await getGameContract(web3, accounts)
 
       let contract = await Game.deployed()
@@ -66,13 +99,15 @@ export default () => () => next => async action => {
       console.log(`Setting up cloud data...`)
 
       await cloudDb.addGame(contract.address, {
-        player1: {
-          address: await contract.player1.call(),
-          board: await encrypt(authKey, board)
-        },
+        status: GAME_STATUS.NEED_OPPONENT,
+        network,
         ships,
         boardLength,
         maxRounds,
+        player1: await contract.player1.call(),
+        player1Data: {
+          board: await encrypt(authKey, board)
+        }
       })
 
       console.log(`...done`)

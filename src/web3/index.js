@@ -28,7 +28,10 @@ const web3Result = new Promise(resolve => {
 export default async () => {
   const web3 = await web3Result
 
-  const accounts = await promisify(web3.eth.getAccounts)()
+  const [ accounts, block ] = await Promise.all([
+    promisify(web3.eth.getAccounts)(),
+    promisify(web3.eth.getBlock)(0)
+  ])
 
-  return { accounts, web3 }
+  return { accounts, network: block.hash, web3 }
 }

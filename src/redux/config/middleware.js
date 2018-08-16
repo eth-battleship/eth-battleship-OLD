@@ -8,11 +8,11 @@ export default () => () => next => async action => {
   switch (action.type) {
     case SETUP_WEB3: {
       try {
-        const { web3, accounts } = await setupWeb3()
+        const { web3, network, accounts } = await setupWeb3()
 
         return next({
           ...action,
-          payload: { web3, accounts }
+          payload: { web3, network, accounts }
         })
       } catch (web3Error) {
         return next({

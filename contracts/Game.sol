@@ -16,17 +16,18 @@ contract Game {
    */
   uint public boardSize;
 
-
   enum GameState {
       NeedOpponent,
       Playing,
+      Reveal,
       Over
   }
 
   enum PlayerState {
     Ready,
     Playing,
-    Revealed
+    RevealedMoves,
+    RevealedBoard
   }
 
   struct Player {
@@ -64,13 +65,23 @@ contract Game {
    * Check that the game can be revealed and that the
    * current sender is a player who is yet to call reveal()
    */
-  modifier canReveal () {
+  modifier canRevealMoves () {
       require(state == GameState.Playing);
       // check that it's a valid player who hasn't yet revealed moves
       require(players[msg.sender].state == PlayerState.Playing);
       _;
   }
 
+
+  /**
+   * Check that boards can be revealed.
+   */
+  modifier canRevealBoard () {
+    require(state == GameState.Reveal);
+    // check that it's a valid player who hasn't yet revealed their board
+    require(players[msg.sender].state == PlayerState.RevealedMoves);
+    _;
+  }
 
 
   /**
@@ -127,57 +138,60 @@ contract Game {
 
 
   /**
-   * Reveal moves and board.
-
+   * Reveal moves.
    * The moves are represented a 256-bit uint. For a given move (x, y) the
    * bit position is calculated as 2^(boardSize * x + y)
+   *
+   * @param moves_ The moves by this player (each bit represents a move)
+   */
+  function revealMoves(uint moves_)
+    public
+    canRevealMoves()
+  {
+    // no. of moves should not be more than max rounds, but can be less since
+    // player may have already sunk all of opponent's ships early on
+    require(countBits(moves_) <= maxRounds);
+
+    // update player
+    players[msg.sender].moves = moves_;
+    players[msg.sender].state = PlayerState.RevealedMoves;
+
+    // if opponent has also already revealed moves then update game state
+    if (players[msg.sender == player1 ? player2 : player1].state == PlayerState.RevealedMoves) {
+      state = GameState.Reveal;
+    }
+  }
+
+
+  /**
+   * Reveal board.
    *
    * The board array is an array of triplets, whereby each triplet represents
    * a ship, specifying (x,y,isVertical).
    *
    * @param board_ This player's board as an array
-   * @param moves_ The moves by this player (each bit represents a move)
-   * @param theirMoves_ The moves by the opponent
    */
-  function reveal(bytes board_, uint moves_, uint theirMoves_)
+  function revealBoard(bytes board_)
     public
-    canReveal()
+    canRevealBoard()
   {
-    // no. of moves should not be more than max rounds, but can be less since
-    // player may have already sunk all of opponent's ships early on
-    require(countBits(moves_) <= maxRounds);
-    require(countBits(theirMoves_) <= maxRounds);
+    // board hash must match
+    assert(players[msg.sender].boardHash == calculateBoardHash(ships, boardSize, board_));
+
+    // update player
+    players[msg.sender].board = board_;
+    players[msg.sender].state = PlayerState.RevealedBoard;
 
     address opponent = (player1 == msg.sender) ? player2 : player1;
 
-    // if opponent has reveal()ed, then check that all move values match up!
-    if (players[opponent].state == PlayerState.Revealed &&
-        (players[opponent].moves != theirMoves_ || players[msg.sender].moves != moves_)
-    ) {
-      // reset opponent player state so they can reveal again and skip the reset of the reveal logic
-      players[opponent].state = PlayerState.Playing;
-    } else {
-      // board hash must match
-      require(players[msg.sender].boardHash == calculateBoardHash(ships, boardSize, board_));
+    // calculate opponent's hits
+    calculateHits(players[msg.sender], players[opponent]);
 
-      // update player
-      players[msg.sender].board = board_;
-      players[msg.sender].moves = moves_;
-      players[msg.sender].state = PlayerState.Revealed;
-
-      // update opponent
-      players[opponent].moves = theirMoves_;
-
-      // calculate hits for opponent
-      calculateHits(players[msg.sender], players[opponent]);
-
-      // if opponent has also already revealed moves then update game state
-      if (players[opponent].state == PlayerState.Revealed) {
-        state = GameState.Over;
-      }
+    // if opponent has also already revealed board then update game state
+    if (players[opponent].state == PlayerState.RevealedBoard) {
+      state = GameState.Over;
     }
   }
-
 
 
   /**

@@ -26,6 +26,7 @@
     "generator-star-spacing": ["error", {"before": false, "after": true}],
     "no-multiple-empty-lines": 0,
     "yoda": 0,
+    "no-param-reassign": 0,
     "brace-style": 0,
     "react/jsx-uses-vars": 2,
     "react/jsx-uses-react": 2,

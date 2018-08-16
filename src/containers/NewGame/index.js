@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 
 import { connectStore } from '../../redux'
-import AuthenticatedView from '../../components/AuthenticatedView'
+import AuthenticatedView from '../AuthenticatedView'
 import GameBoard from '../../components/GameBoard'
 import Ship from '../../components/Ship'
 import { getColor, shipSitsOn, shipCanBePlaced, calculateShipEndPoint } from '../../utils/ships'
@@ -130,13 +130,10 @@ export default class NewGame extends PureComponent {
         if ((hoverX <= x && endX >= x) && (hoverY <= y && endY >= y)) {
           const color = getColor(shipLengths[selectedShip.shipId])
 
-          // eslint-disable-next-line no-param-reassign
           style.border = `1px solid ${color}`
-          // eslint-disable-next-line no-param-reassign
           style.backgroundColor = color
         }
       } else if (x === hoverX && y === hoverY) {
-        // eslint-disable-next-line no-param-reassign
         style.backgroundColor = '#999'
       }
     }
