@@ -3,9 +3,6 @@ import React, { PureComponent } from 'react'
 import { Router } from './nav'
 import { connectStore } from './redux'
 
-import './css/oswald.css'
-import './css/open-sans.css'
-import './css/pure-min.css'
 import styles from './App.styl'
 
 

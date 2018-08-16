@@ -5,6 +5,9 @@ import { Provider } from 'react-redux'
 import { setupStore } from './redux'
 import App from './App'
 
+import './css/oswald.css'
+import './css/open-sans.css'
+import './css/pure-min.css'
 import './index.styl'
 
 const store = setupStore()

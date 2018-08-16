@@ -75,11 +75,13 @@
     "whatwg-fetch": "1.0.0"
   },
   "dependencies": {
+    "classnames": "^2.2.6",
     "connected-react-router": "^4.4.1",
     "dotenv": "^2.0.0",
     "history": "^4.7.2",
     "immutable": "^3.8.2",
     "lodash": "^4.17.10",
+    "prop-types": "^15.6.2",
     "react": "^15.6.2",
     "react-dom": "^15.4.2",
     "react-router": "^4.3.1",
