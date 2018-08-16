@@ -7,7 +7,7 @@ import {
   createStore
 } from 'redux'
 import { connect } from 'react-redux'
-import { createBrowserHistory } from 'history'
+import { createHashHistory } from 'history'
 import { connectRouter, routerMiddleware } from 'connected-react-router'
 
 import actionCreators from './actionCreators'
@@ -16,7 +16,7 @@ import { createReducers } from './reducers'
 import { createMiddleware } from './middleware'
 
 let store
-const history = createBrowserHistory()
+const history = createHashHistory()
 
 export const getHistory = () => history
 
