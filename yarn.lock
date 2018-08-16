@@ -291,6 +291,10 @@ arr-union@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/arr-union/-/arr-union-3.1.0.tgz#e39b09aea9def866a8f206e288af63919bae39c4"
 
+array-buffer-to-hex@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/array-buffer-to-hex/-/array-buffer-to-hex-1.0.0.tgz#9c76e53010ef7bf7bf8a27ebbb41d24e1d83edf4"
+
 array-equal@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/array-equal/-/array-equal-1.0.0.tgz#8c2a5ef2472fd9ea742b04c77a75093ba2757c93"
@@ -4066,6 +4070,10 @@ hdkey@^1.0.0:
 he@1.1.x:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/he/-/he-1.1.1.tgz#93410fd21b009735151f8868c2f271f3427e23fd"
+
+hex-to-array-buffer@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/hex-to-array-buffer/-/hex-to-array-buffer-1.1.0.tgz#17cb9613da06c3fefe4bc27436b5bcddf9d309c3"
 
 history@^4.7.2:
   version "4.7.2"

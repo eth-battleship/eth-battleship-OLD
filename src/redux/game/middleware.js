@@ -1,8 +1,8 @@
-import { CREATE_GAME } from './actions'
+import { CREATE_GAME, WATCH_GAME } from './actions'
 import { getStore } from '../'
-import { getGameContract } from '../../utils/contract'
+import { getGameContract, isSameAddress } from '../../utils/contract'
 import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/ships'
-import { encrypt } from '../../utils/crypto'
+import { encrypt, decrypt } from '../../utils/crypto'
 import cloudDb from '../../cloudDb'
 
 // eslint-disable-next-line consistent-return
@@ -20,6 +20,27 @@ export default () => () => next => async action => {
   const web3 = getWeb3()
 
   switch (action.type) {
+    case WATCH_GAME: {
+      const { id, callback } = action.payload
+
+      return cloudDb.watchGame(id, async snapshot => {
+        const doc = snapshot.data()
+
+        try {
+          if (authKey) {
+            if (doc.player1 && isSameAddress(doc.player1.address, accounts[0])) {
+              doc.player1.board.plaintext = await decrypt(authKey, doc.player1.board)
+            } else if (doc.player2 && isSameAddress(doc.player2.address, accounts[0])) {
+              doc.player2.board.plaintext = await decrypt(authKey, doc.player2.board)
+            }
+          }
+        } catch (err) {
+          console.error('Error sanitizing game info', err)
+        } finally {
+          callback(doc)
+        }
+      })
+    }
     case CREATE_GAME: {
       const Game = await getGameContract(web3, accounts)
 
