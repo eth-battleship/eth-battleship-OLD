@@ -1,1 +1,2 @@
 export const SETUP_WEB3 = 'SETUP_WEB3'
+export const AUTHENTICATE = 'AUTHENTICATE'

@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react'
 
 import { connectStore } from '../../redux'
+import AuthenticatedView from '../../components/AuthenticatedView'
 import GameBoard from '../../components/GameBoard'
 import Ship from '../../components/Ship'
 import { getColor, shipSitsOn, shipCanBePlaced, calculateShipEndPoint } from '../../utils/ships'
@@ -10,17 +11,21 @@ import styles from './index.styl'
 @connectStore()
 export default class NewGame extends PureComponent {
   state = {
+    maxRounds: 30,
     boardLength: 10,
     shipLengths: [ 5, 4, 3, 3, 2 ],
     shipPositions: {},
+    shipPositionBits: 0,
     selectedShip: null
   }
 
   render () {
     const { boardLength, shipLengths, shipPositions } = this.state
 
+    const allShipsPlaced = (Object.keys(shipPositions).length === shipLengths.length)
+
     return (
-      <div>
+      <AuthenticatedView>
         <div className={styles.selectableShips}>
           {this._renderShipSelector()}
         </div>
@@ -31,8 +36,8 @@ export default class NewGame extends PureComponent {
           onPress={this._onSelectCell}
           applyHoverStyleToEmptyCell={this._applyHoverStyleToEmptyCell}
         />
-        <button onClick={this._onStartGame}>Start game</button>
-      </div>
+        <button disabled={!allShipsPlaced} onClick={this._onStartGame}>Start game</button>
+      </AuthenticatedView>
     )
   }
 
@@ -76,7 +81,7 @@ export default class NewGame extends PureComponent {
     let foundShip
 
     // if there is a ship in this position then remove it
-    Object.keys(shipPositions, id => {
+    Object.keys(shipPositions).forEach(id => {
       if (shipSitsOn(shipPositions[id], shipLengths[id], x, y)) {
         foundShip = id
       }
@@ -130,11 +135,14 @@ export default class NewGame extends PureComponent {
           // eslint-disable-next-line no-param-reassign
           style.backgroundColor = color
         }
+      } else if (x === hoverX && y === hoverY) {
+        // eslint-disable-next-line no-param-reassign
+        style.backgroundColor = '#999'
       }
     }
   }
 
   _onStartGame = () => {
-    this.props.actions.createNewGame()
+    this.props.actions.createNewGame(this.state)
   }
 }

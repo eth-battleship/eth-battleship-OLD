@@ -1,3 +1,5 @@
+import { bytesToHex } from 'web3-utils'
+
 export const getColor = shipSize => {
   switch (shipSize) {
     case 5: {
@@ -17,24 +19,21 @@ export const getColor = shipSize => {
   }
 }
 
-
-export const shipSitsOn = (ship, shipLength, x, y) => {
-  const { x: sx, y: sy, isVertical: sv } = ship
-
-  const startX = sx
-  const startY = sy
-  const endX = startX + (sv ? (shipLength - 1) : 0)
-  const endY = startY + (sv ? 0 : (shipLength - 1))
-
-  return (startX <= x && startY <= y && endX >= x && endY >= y)
-}
-
 export const calculateShipEndPoint = (sx, sy, isVertical, length) => {
   const x = sx + (isVertical ? (length - 1) : 0)
   const y = sy + (isVertical ? 0 : (length - 1))
 
   return { x, y }
 }
+
+export const shipSitsOn = (shipPosition, shipLength, x, y) => {
+  const { x: startX, y: startY, isVertical: sv } = shipPosition
+
+  const { x: endX, y: endY } = calculateShipEndPoint(startX, startY, sv, shipLength)
+
+  return (startX <= x && startY <= y && endX >= x && endY >= y)
+}
+
 
 // See: http://www.cs.swan.ac.uk/~cssimon/line_intersection.html
 const linesIntersect = (x1, y1, x2, y2, x3, y3, x4, y4) => {
@@ -52,8 +51,8 @@ const linesIntersect = (x1, y1, x2, y2, x3, y3, x4, y4) => {
       return (!(x3 > x2 || x4 < x1))
     }
     // horizontal
-    else if (x1 === x2 && x1 === x3 && x3 === x4) {
-      return (!(y3 > x2 || y4 < y1))
+    else if (x1 === x2 && x2 === x3 && x3 === x4) {
+      return (!(y3 > y2 || y4 < y1))
     }
   }
 
@@ -85,3 +84,15 @@ export const shipCanBePlaced = (
 
   return !clash
 }
+
+export const shipPositionsToSolidityBytesHex = shipPositions => {
+  const bytes = []
+
+  Object.values(shipPositions).forEach(({ x, y, isVertical }) => {
+    bytes.push(x, y, isVertical ? 1 : 0)
+  })
+
+  return bytesToHex(bytes)
+}
+
+export const shipLengthsToSolidityBytesHex = shipLengths => bytesToHex(shipLengths)

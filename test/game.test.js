@@ -106,6 +106,7 @@ contract('setup contract', accounts => {
     await _assertCall(game.maxRounds, 10)
     await _assertCall(game.boardSize, 4)
     await _assertCall(game.state, 0)
+    await _assertCall(game.player1, accounts[0])
     await _assertCall(game.players.call(accounts[0]), [
       '0x',
       player1BoardHash,
@@ -199,6 +200,7 @@ contract('ready to join game', accounts => {
 
     await _assertCall(game.state, 1)
     await _assertCall(game.currentRound, 1)
+    await _assertCall(game.player2, accounts[1])
     await _assertCall(game.players.call(accounts[1]), [
       '0x',
       player2BoardHash,

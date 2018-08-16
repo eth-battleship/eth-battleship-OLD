@@ -51,8 +51,8 @@ contract Game {
 
   // players
   mapping (address => Player) public players;
-  address private player1;
-  address private player2;
+  address public player1;
+  address public player2;
 
   // the current game round
   uint public currentRound;

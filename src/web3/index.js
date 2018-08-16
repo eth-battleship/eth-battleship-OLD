@@ -1,5 +1,7 @@
 import Web3 from 'web3'
 
+import { promisify } from '../utils/promise'
+
 const web3Result = new Promise(resolve => {
   // Wait for loading completion to avoid race conditions with web3 injection timing.
   window.addEventListener('load', () => {
@@ -26,16 +28,7 @@ const web3Result = new Promise(resolve => {
 export default async () => {
   const web3 = await web3Result
 
-  // check that can get accounts
-  await new Promise((resolve, reject) => {
-    web3.eth.getAccounts((err, acc) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(acc)
-      }
-    })
-  })
+  const accounts = await promisify(web3.eth.getAccounts)()
 
-  return web3
+  return { accounts, web3 }
 }

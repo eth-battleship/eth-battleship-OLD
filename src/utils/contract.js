@@ -1,11 +1,8 @@
 import Contract from 'truffle-contract'
 
 import GameContract from '../../build/contracts/Game.json'
-import { promisify } from './promise'
 
-export const getGameContract = async web3 => {
-  const accounts = await promisify(web3.eth.getAccounts)()
-
+export const getGameContract = async (web3, accounts) => {
   const c = Contract(GameContract)
   c.setProvider(web3.currentProvider)
   c.defaults({
