@@ -1,11 +1,15 @@
 import React, { PureComponent } from 'react'
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs'
 
+import AuthenticatedView from '../../components/AuthenticatedView'
 import Loading from '../../components/Loading'
 import ErrorBox from '../../components/ErrorBox'
 import GamesTable from '../../components/GamesTable'
 import { connectStore } from '../../redux'
 
-@connectStore()
+import styles from './index.styl'
+
+@connectStore('config')
 export default class Home extends PureComponent {
   state = {
     loading: true,
@@ -14,7 +18,7 @@ export default class Home extends PureComponent {
   }
 
   componentDidMount () {
-    this.props.actions.loadActiveGames()
+    this.props.actions.loadGames()
       .then(games => {
         this.setState({ games, loading: false })
       })
@@ -27,27 +31,60 @@ export default class Home extends PureComponent {
     let content
 
     if (loading) {
-      content = <Loading />
+      content = <div><Loading /></div>
     } else if (error) {
-      content = <ErrorBox error={error} />
+      content = <ErrorBox>{`${error}`}</ErrorBox>
     } else {
       content = this._renderGames(games)
     }
 
     return (
       <div>
-        <button onClick={this._onStartGame}>Start new game</button>
+        <button
+          className={styles.startButton}
+          onClick={this._onStartGame}
+        >
+          Start new game
+        </button>
         {content}
       </div>
     )
   }
 
-  _renderGames = games => (
-    <div>
-      <h2>Active games:</h2>
-      <GamesTable games={games} />
-    </div>
-  )
+  _renderGames = games => {
+    const { getDefaultAccount } = this.props.selectors
+
+    const address = getDefaultAccount()
+
+    const myGames = {}
+
+    if (address) {
+      Object.keys(games).forEach(id => {
+        const game = games[id]
+
+        if (game.player1 === address || game.player2 === address) {
+          myGames[id] = game
+        }
+      })
+    }
+
+    return (
+      <Tabs>
+        <TabList>
+          <Tab>All games</Tab>
+          <Tab>My games</Tab>
+        </TabList>
+        <TabPanel>
+          <GamesTable games={games} />
+        </TabPanel>
+        <TabPanel>
+          <AuthenticatedView text='Please sign in to view your games'>
+            <GamesTable games={myGames} />
+          </AuthenticatedView>
+        </TabPanel>
+      </Tabs>
+    )
+  }
 
   _onStartGame = () => {
     this.props.actions.navNewGame()

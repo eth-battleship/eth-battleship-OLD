@@ -19,7 +19,8 @@ contract Game {
   enum GameState {
       NeedOpponent,
       Playing,
-      Reveal,
+      RevealMoves,
+      RevealBoard,
       Over
   }
 
@@ -55,9 +56,6 @@ contract Game {
   address public player1;
   address public player2;
 
-  // the current game round
-  uint public currentRound;
-
   // current game state
   GameState public state;
 
@@ -66,7 +64,7 @@ contract Game {
    * current sender is a player who is yet to call reveal()
    */
   modifier canRevealMoves () {
-      require(state == GameState.Playing);
+      require(state == GameState.Playing || state == GameState.RevealMoves);
       // check that it's a valid player who hasn't yet revealed moves
       require(players[msg.sender].state == PlayerState.Playing);
       _;
@@ -77,7 +75,7 @@ contract Game {
    * Check that boards can be revealed.
    */
   modifier canRevealBoard () {
-    require(state == GameState.Reveal);
+    require(state == GameState.RevealMoves || state == GameState.RevealBoard);
     // check that it's a valid player who hasn't yet revealed their board
     require(players[msg.sender].state == PlayerState.RevealedMoves);
     _;
@@ -133,7 +131,6 @@ contract Game {
     players[player2].state = PlayerState.Playing;
     // game state
     state = GameState.Playing;
-    currentRound = 1;
   }
 
 
@@ -155,10 +152,13 @@ contract Game {
     // update player
     players[msg.sender].moves = moves_;
     players[msg.sender].state = PlayerState.RevealedMoves;
+    state = GameState.RevealMoves;
+
+    address opponent = (msg.sender == player1) ? player2 : player1;
 
     // if opponent has also already revealed moves then update game state
-    if (players[msg.sender == player1 ? player2 : player1].state == PlayerState.RevealedMoves) {
-      state = GameState.Reveal;
+    if (players[opponent].state == PlayerState.RevealedMoves) {
+      state = GameState.RevealBoard;
     }
   }
 

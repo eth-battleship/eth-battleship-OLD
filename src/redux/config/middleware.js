@@ -28,10 +28,11 @@ export default () => () => next => async action => {
       const accounts = getAccounts()
 
       const authKey = await web3.eth.personal.sign(AUTH_SENTENCE, accounts[0])
+      const signingAccount = await web3.eth.personal.ecRecover(AUTH_SENTENCE, authKey)
 
       return next({
         ...action,
-        payload: { authKey }
+        payload: { authKey, signingAccount }
       })
     }
     default: {

@@ -24,14 +24,16 @@ export default () => {
         .set('network', network.toLowerCase())
         .set('web3Error', web3Error)
     },
-    [AUTHENTICATE]: (state, { payload: { authKey } }) => {
+    [AUTHENTICATE]: (state, { payload: { authKey, signingAccount } }) => {
       _authKeyPromise.resolve()
 
       return state
+        .set('defaultAccount', signingAccount)
         .set('authKey', authKey.toLowerCase())
     }
   }, Immutable.Map({
     accounts: null,
+    defaultAccount: null,
     network: null,
     web3: null,
     _web3Promise,

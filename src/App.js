@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 
 import { Router } from './nav'
 import { connectStore } from './redux'
+import ErrorBox from './components/ErrorBox'
 
 import styles from './App.styl'
 
@@ -14,13 +15,13 @@ export default class App extends PureComponent {
     const web3Error = this.props.selectors.getWeb3Error()
     if (web3Error) {
       content = (
-        <div className={styles.web3Error}>
+        <ErrorBox>
           <p>
             Unable to detect web3 provider instance. Ensure you have MetaMask
             installed or that you are viewing this page within a Dapp browser.
           </p>
-          <p>{`${web3Error}`}</p>
-        </div>
+          <p>Error: {`${web3Error}`}</p>
+        </ErrorBox>
       )
     } else {
       content = <Router />
@@ -29,7 +30,7 @@ export default class App extends PureComponent {
     return (
       <main>
         <header className={styles.header}>
-          <div className={styles.brand}>
+          <div className={styles.brand} onClick={this._navHome}>
             Blockchain Battleship!
           </div>
         </header>
@@ -38,5 +39,9 @@ export default class App extends PureComponent {
         </section>
       </main>
     )
+  }
+
+  _navHome = () => {
+    this.props.actions.navHome()
   }
 }

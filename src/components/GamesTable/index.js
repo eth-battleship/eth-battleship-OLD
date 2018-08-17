@@ -1,11 +1,11 @@
 import React, { PureComponent } from 'react'
 
-import { GAME_STATUS } from '../../utils/constants'
 import { connectStore } from '../../redux'
+import { getFriendlyGameStatus } from '../../utils/game'
 
 import styles from './index.styl'
 
-@connectStore('game')
+@connectStore()
 export default class GameTable extends PureComponent {
   render () {
     const { games } = this.props
@@ -22,7 +22,7 @@ export default class GameTable extends PureComponent {
             {new Date(game.created).toString()}
           </td>
           <td className={styles.status}>
-            {this._renderGameStatus(game.status)}
+            {getFriendlyGameStatus(game.status)}
           </td>
         </tr>
       )
@@ -30,24 +30,9 @@ export default class GameTable extends PureComponent {
 
     return (
       <table style={styles.table}>
-        <tbody>
-          {rows}
-        </tbody>
+        <tbody>{rows}</tbody>
       </table>
     )
-  }
-
-  _renderGameStatus = status => {
-    switch (status) {
-      case GAME_STATUS.NEED_OPPONENT:
-        return 'Awaiting opponent'
-      case GAME_STATUS.OVER:
-        return 'Over'
-      case GAME_STATUS.PLAYING:
-        return 'Playing'
-      default:
-        return 'Unknown'
-    }
   }
 
   _onPress = id => {

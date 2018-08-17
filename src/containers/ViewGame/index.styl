@@ -1,0 +1,44 @@
+@import '../../utils/common.styl'
+
+.meta
+  @extend $flexRowWrap
+  margin-bottom: 0.5em
+
+  & > div
+    margin-right 1em
+    margin-bottom 0.5em
+
+.ships
+  @extend $flexRowWrap
+  & > div
+    margin-right 0.5em
+    margin-bottom 0.5em
+
+
+.players
+  @extend $flexRowWrap
+  justify-content: space-around
+
+.player
+  width 400px
+  margin 0 10px
+  font-size 0.9rem
+
+.playerBoard
+  @extend $flexColumn
+  background-color: #efefef
+  border-radius: 5px
+  padding 1rem
+
+.playerId
+  font-size 0.8rem
+  margin-bottom 1rem
+
+.noOpponentYet
+  font-size 1.2rem
+
+.hitMarker
+  background-color: #f00
+  font-size 0.5rem
+  color: #fff
+  padding 5px

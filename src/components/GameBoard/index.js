@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 
-import { getColor, shipSitsOn } from '../../utils/ships'
+import { getColor, shipSitsOn } from '../../utils/game'
 
 import styles from './index.styl'
 
@@ -13,6 +13,7 @@ export default class GameBoard extends PureComponent {
     shipPositions: PropTypes.object.isRequired,
     onPress: PropTypes.func,
     applyHoverStyleToEmptyCell: PropTypes.func,
+    renderCellContent: PropTypes.func
   }
 
   state = {
@@ -51,7 +52,13 @@ export default class GameBoard extends PureComponent {
   }
 
   _renderCell (x, y) {
-    const { applyHoverStyleToEmptyCell, shipLengths, shipPositions, onPress } = this.props
+    const {
+      applyHoverStyleToEmptyCell,
+      renderCellContent,
+      shipLengths,
+      shipPositions,
+      onPress
+    } = this.props
     const { hoverX, hoverY } = this.state
 
     let shipToRender
@@ -72,7 +79,7 @@ export default class GameBoard extends PureComponent {
 
     if (shipToRender) {
       style.backgroundColor = getColor(shipLengths[shipToRender])
-      style.cursor = 'pointer'
+      style.cursor = onPress ? 'pointer' : null
 
       switch (partOfShip) {
         case 0: {
@@ -101,7 +108,9 @@ export default class GameBoard extends PureComponent {
         onClick={() => (onPress ? onPress(x, y) : null)}
         onMouseOver={() => this._onHover(x, y)}
         onMouseOut={() => this._onHover(-1, -1)}
-      />
+      >
+        {renderCellContent ? renderCellContent(x, y) : null}
+      </td>
     )
   }
 

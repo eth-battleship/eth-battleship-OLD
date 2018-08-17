@@ -1,4 +1,7 @@
-import { bytesToHex } from 'web3-utils'
+import _ from 'lodash'
+import { bytesToHex, hexToBytes } from 'web3-utils'
+
+import { GAME_STATUS } from './constants'
 
 export const getColor = shipSize => {
   switch (shipSize) {
@@ -95,4 +98,69 @@ export const shipPositionsToSolidityBytesHex = shipPositions => {
   return bytesToHex(bytes)
 }
 
+export const solidityBytesHexToShipPositions = hex => {
+  const ret = {}
+
+  const bytes = hexToBytes(hex)
+
+  for (let i = 0; bytes.length > i; i += 3) {
+    const x = bytes[i]
+    const y = bytes[i + 1]
+    const isVertical = !!(bytes[i + 2])
+
+    ret[i / 3] = { x, y, isVertical }
+  }
+
+  return ret
+}
+
 export const shipLengthsToSolidityBytesHex = shipLengths => bytesToHex(shipLengths)
+
+export const solidityBytesHexToShipLengths = hex => hexToBytes(hex)
+
+export const convertMovesHistoryToBitObject = (boardLength, moves) => (
+  moves.reduce((m, { x, y }) => {
+    m[x * boardLength + y] = true
+    return m
+  }, {})
+)
+
+export const doesMovesBitObjectContainPoint = (boardLength, movesBits, x, y) => (
+  !!movesBits[x * boardLength + y]
+)
+
+export const getNextPlayerToPlay = game => {
+  const p1moves = _.get(game, 'player1Data.moves')
+  const p2moves = _.get(game, 'player2Data.moves')
+
+  if (!p1moves || !p2moves) {
+    return 1
+  }
+
+  return p2moves.length < p1moves.length ? 2 : 1
+}
+
+export const getFriendlyGameStatus = (status, game) => {
+  switch (status) {
+    case GAME_STATUS.NEED_OPPONENT:
+      return 'Awaiting opponent'
+    case GAME_STATUS.PLAYING: {
+      let str
+      if (game) {
+        const nextPlayer = getNextPlayerToPlay(game)
+
+        str = ` round ${game.round}, player${nextPlayer}'s turn`
+      }
+
+      return `Playing${str}`
+    }
+    case GAME_STATUS.REVEAL_MOVES:
+      return 'Reveal moves'
+    case GAME_STATUS.REVEAL_BOARD:
+      return 'Reveal boards'
+    case GAME_STATUS.OVER:
+      return 'Over'
+    default:
+      return 'Unknown'
+  }
+}

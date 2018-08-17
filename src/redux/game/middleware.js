@@ -1,34 +1,11 @@
-import { CREATE_GAME, WATCH_GAME, LOAD_ACTIVE_GAMES } from './actions'
-import { GAME_STATUS } from '../../utils/constants'
+import { CREATE_GAME, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
 import { getStore } from '../'
-import { getGameContract, isSameAddress } from '../../utils/contract'
-import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/ships'
-import { encrypt, decrypt } from '../../utils/crypto'
+import { getGameContract } from '../../utils/contract'
+import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/game'
+import { encrypt } from '../../utils/crypto'
 import cloudDb from '../../cloudDb'
+import { processGames } from './utils'
 
-const _processGames = (games, authKey, address) => {
-  let promise = Promise.resolve()
-
-  if (authKey) {
-    promise = Promise.all(Object.keys(games).map(gameId => {
-      const game = games[gameId]
-
-      if (GAME_STATUS.OVER !== game.status) {
-        if (isSameAddress(game.player1, address)) {
-          return decrypt(authKey, game.player1Data.board)
-            .then(plaintext => { game.player1Data.board.plaintext = plaintext })
-        } else if (isSameAddress(game.player2, address)) {
-          return decrypt(authKey, game.player2Data.board)
-            .then(plaintext => { game.player2Data.board.plaintext = plaintext })
-        }
-      }
-
-      return Promise.resolve()
-    }))
-  }
-
-  return promise.then(() => games)
-}
 
 // eslint-disable-next-line consistent-return
 export default () => () => next => async action => {
@@ -36,7 +13,7 @@ export default () => () => next => async action => {
 
   const { selectors: {
     getWeb3,
-    getAccounts,
+    getDefaultAccount,
     getAuthKey,
     getNetwork,
     waitUntilWeb3Connected,
@@ -44,14 +21,21 @@ export default () => () => next => async action => {
   } } = store
 
   switch (action.type) {
-    case LOAD_ACTIVE_GAMES: {
-      await waitUntilWeb3Connected()
+    case LOAD_MY_GAMES: {
+      await waitUntilAuthKeyObtained()
 
-      const games = await cloudDb.loadActiveGames(getNetwork())
+      const account = getDefaultAccount()
 
-      await _processGames(games, getAuthKey(), getAccounts()[0])
+      const games = await cloudDb.loadMyGames(getNetwork(), account)
+
+      await processGames(getWeb3(), games, getAuthKey(), account)
 
       return games
+    }
+    case LOAD_GAMES: {
+      await waitUntilWeb3Connected()
+
+      return cloudDb.loadGames(getNetwork())
     }
     case WATCH_GAME: {
       await waitUntilAuthKeyObtained()
@@ -60,8 +44,10 @@ export default () => () => next => async action => {
 
       const { id, callback } = action.payload
 
+      const account = getDefaultAccount()
+
       return cloudDb.watchGame(id, game => {
-        _processGames([ game ], authKey, getAccounts()[0])
+        processGames(getWeb3(), { [id]: game }, authKey, account, true)
           .catch(err => {
             console.error('Error sanitizing game info', err)
           })
@@ -70,15 +56,60 @@ export default () => () => next => async action => {
           })
       })
     }
+    case JOIN_GAME: {
+      await waitUntilAuthKeyObtained()
+
+      const { id, shipPositions } = action.payload
+
+      const authKey = await getAuthKey()
+      const account = getDefaultAccount()
+      const web3 = getWeb3()
+
+      const Game = await getGameContract(web3, account)
+      const contract = await Game.at(id)
+
+      const board = shipPositionsToSolidityBytesHex(shipPositions)
+
+      console.log('Calculating board hash...')
+
+      const boardHash = await contract.calculateBoardHash.call(
+        await contract.ships.call(),
+        await contract.boardSize.call(),
+        board
+      )
+
+      console.log(`...${boardHash}`)
+
+      console.log('Calling contract join()...')
+
+      await contract.join(boardHash)
+
+      console.log(`...done`)
+
+      console.log(`Updating game data in cloud...`)
+
+      await cloudDb.updateGame(id, {
+        player2: account,
+        player2Data: {
+          board: await encrypt(authKey, board),
+          moves: []
+        },
+        round: 1
+      })
+
+      console.log(`...done`)
+
+      return Promise.resolve()
+    }
     case CREATE_GAME: {
       await waitUntilAuthKeyObtained()
 
       const authKey = await getAuthKey()
       const network = await getNetwork()
-      const accounts = getAccounts()
+      const account = getDefaultAccount()
       const web3 = getWeb3()
 
-      const Game = await getGameContract(web3, accounts)
+      const Game = await getGameContract(web3, account)
 
       let contract = await Game.deployed()
 
@@ -102,25 +133,25 @@ export default () => () => next => async action => {
       console.log(`Setting up cloud data...`)
 
       await cloudDb.addGame(contract.address, {
-        status: GAME_STATUS.NEED_OPPONENT,
         network,
-        ships,
-        boardLength,
-        maxRounds,
         player1: await contract.player1.call(),
         player1Data: {
-          board: await encrypt(authKey, board)
-        }
+          board: await encrypt(authKey, board),
+          moves: []
+        },
+        /*
+        We include the following props for convenience sake, so that we can quickly
+        render the list of games in table without having to fetch these props
+        from each individual contract. However, note that when viewing an
+        individual game we will override these values with what's in the
+        contract.
+        */
+        boardLength,
+        maxRounds,
+        shipLengths
       })
 
       console.log(`...done`)
-
-      next({
-        ...action,
-        payload: {
-          contract
-        }
-      })
 
       return store.actions.navGame(contract.address)
     }

@@ -2,11 +2,11 @@ import Contract from 'truffle-contract'
 
 import GameContract from '../../build/contracts/Game.json'
 
-export const getGameContract = async (web3, accounts) => {
+export const getGameContract = async (web3, account) => {
   const c = Contract(GameContract)
   c.setProvider(web3.currentProvider)
   c.defaults({
-    from: accounts[0]
+    from: account
   })
 
   return c

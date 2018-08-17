@@ -199,7 +199,6 @@ contract('ready to join game', accounts => {
     await game.join(player2BoardHash, { from: accounts[1] })
 
     await _assertCall(game.state, 1)
-    await _assertCall(game.currentRound, 1)
     await _assertCall(game.player2, accounts[1])
     await _assertCall(game.players.call(accounts[1]), [
       '0x',
@@ -271,10 +270,10 @@ contract('reveal moves', accounts => {
     assert.isDefined(err)
   })
 
-  it('updates player state', async () => {
+  it('updates state', async () => {
     await game.revealMoves(4) // 100
 
-    await _assertCall(game.state, 1)
+    await _assertCall(game.state, 2)
     await _assertCall(game.players.call(accounts[0]), [
       '0x',
       player1BoardHash,
@@ -302,7 +301,7 @@ contract('reveal moves', accounts => {
     await game.revealMoves(4, { from: accounts[1] }) // 100
     await game.revealMoves(6) // 110
 
-    await _assertCall(game.state, 2)
+    await _assertCall(game.state, 3)
   })
 })
 
@@ -355,7 +354,7 @@ contract('reveal board', accounts => {
         3
       ])
 
-      await _assertCall(game.state, 2)
+      await _assertCall(game.state, 3)
     })
 
     it('calculates opponent hits', async () => {
@@ -398,7 +397,7 @@ contract('reveal board', accounts => {
       await game.revealBoard(player1Board)
       await game.revealBoard(player2Board, { from: accounts[1] })
 
-      await _assertCall(game.state, 3);
+      await _assertCall(game.state, 4);
     })
   })
 })

@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 
-import { getColor } from '../../utils/ships'
+import { getColor } from '../../utils/game'
 
 import styles from './index.styl'
 
@@ -11,7 +11,8 @@ export default class Ship extends PureComponent {
     size: PropTypes.number,
     length: PropTypes.number.isRequired,
     isVertical: PropTypes.bool,
-    onPress: PropTypes.func
+    onPress: PropTypes.func,
+    style: PropTypes.object
   }
 
   static defaultProps = {
@@ -19,7 +20,7 @@ export default class Ship extends PureComponent {
   }
 
   render () {
-    const { length, isVertical } = this.props
+    const { length, isVertical, style } = this.props
 
     return (
       <div
@@ -28,6 +29,7 @@ export default class Ship extends PureComponent {
           backgroundColor: getColor(length),
           width: isVertical ? this._size(1) : this._size(length),
           height: isVertical ? this._size(length) : this._size(1),
+          ...style
         }}
         onClick={this._onPress}
       />

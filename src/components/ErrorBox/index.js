@@ -1,9 +1,11 @@
 import React, { PureComponent } from 'react'
 
+import styles from './index.styl'
+
 export default class ErrorBox extends PureComponent {
   render () {
     return (
-      <div>{`${this.props.error}`}</div>
+      <div className={styles.box}>{this.props.children}</div>
     )
   }
 }
