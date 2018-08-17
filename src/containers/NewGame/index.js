@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 
 import { connectStore } from '../../redux'
-import AuthenticatedView from '../AuthenticatedView'
+import AuthenticatedView from '../../components/AuthenticatedView'
 import GameBoard from '../../components/GameBoard'
 import Ship from '../../components/Ship'
 import { getColor, shipSitsOn, shipCanBePlaced, calculateShipEndPoint } from '../../utils/ships'
@@ -25,7 +25,7 @@ export default class NewGame extends PureComponent {
     const allShipsPlaced = (Object.keys(shipPositions).length === shipLengths.length)
 
     return (
-      <AuthenticatedView>
+      <AuthenticatedView text='Please sign in to play'>
         <div className={styles.selectableShips}>
           {this._renderShipSelector()}
         </div>

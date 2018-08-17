@@ -1,8 +1,8 @@
 import React, { PureComponent } from 'react'
 
-import AuthenticatedView from '../AuthenticatedView'
 import Loading from '../../components/Loading'
 import ErrorBox from '../../components/ErrorBox'
+import GamesTable from '../../components/GamesTable'
 import { connectStore } from '../../redux'
 
 @connectStore()
@@ -35,16 +35,19 @@ export default class Home extends PureComponent {
     }
 
     return (
-      <AuthenticatedView>
+      <div>
         <button onClick={this._onStartGame}>Start new game</button>
         {content}
-      </AuthenticatedView>
+      </div>
     )
   }
 
-  _renderGames = games => {
-    console.warn(games)
-  }
+  _renderGames = games => (
+    <div>
+      <h2>Active games:</h2>
+      <GamesTable games={games} />
+    </div>
+  )
 
   _onStartGame = () => {
     this.props.actions.navNewGame()

@@ -6,14 +6,14 @@ import { connectStore } from '../../redux'
 export default class AuthenticatedView extends PureComponent {
   render () {
     const { getAuthKey } = this.props.selectors
-    const { children } = this.props
+    const { text, children } = this.props
 
     const hasAuthKey = !!getAuthKey()
 
     return (
       <div>
         {hasAuthKey ? children : (
-          <button onClick={this._onPress}>Please sign in</button>
+          <button onClick={this._onPress}>{text || 'Please sign in'}</button>
         )}
       </div>
     )

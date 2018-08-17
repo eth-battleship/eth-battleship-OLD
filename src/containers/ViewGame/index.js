@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react'
 
-import AuthenticatedView from '../AuthenticatedView'
+import AuthenticatedView from '../../components/AuthenticatedView'
 import Loading from '../../components/Loading'
 import { connectStore } from '../../redux'
 
@@ -42,7 +42,7 @@ export default class ViewGame extends PureComponent {
     const { loading, game } = this.state
 
     return (
-      <AuthenticatedView>
+      <AuthenticatedView text='Please sign in to view game'>
         {loading ? <Loading /> : this._renderGame(game)}
       </AuthenticatedView>
     )

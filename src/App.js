@@ -28,7 +28,7 @@ export default class App extends PureComponent {
 
     return (
       <main>
-        <header>
+        <header className={styles.header}>
           <div className={styles.brand}>
             Blockchain Battleship!
           </div>

@@ -37,14 +37,15 @@ export default () => () => next => async action => {
   const { selectors: {
     getWeb3,
     getAccounts,
-    getNetwork,
     getAuthKey,
-    getAuthKeyPromise
+    getNetwork,
+    waitUntilWeb3Connected,
+    waitUntilAuthKeyObtained,
   } } = store
 
   switch (action.type) {
     case LOAD_ACTIVE_GAMES: {
-      await getAuthKeyPromise()
+      await waitUntilWeb3Connected()
 
       const games = await cloudDb.loadActiveGames(getNetwork())
 
@@ -53,12 +54,14 @@ export default () => () => next => async action => {
       return games
     }
     case WATCH_GAME: {
-      await getAuthKeyPromise()
+      await waitUntilAuthKeyObtained()
+
+      const authKey = await getAuthKey()
 
       const { id, callback } = action.payload
 
       return cloudDb.watchGame(id, game => {
-        _processGames([ game ], getAuthKey(), getAccounts()[0])
+        _processGames([ game ], authKey, getAccounts()[0])
           .catch(err => {
             console.error('Error sanitizing game info', err)
           })
@@ -68,10 +71,10 @@ export default () => () => next => async action => {
       })
     }
     case CREATE_GAME: {
-      await getAuthKeyPromise()
+      await waitUntilAuthKeyObtained()
 
-      const authKey = getAuthKey()
-      const network = getNetwork()
+      const authKey = await getAuthKey()
+      const network = await getNetwork()
       const accounts = getAccounts()
       const web3 = getWeb3()
 
