@@ -1,6 +1,6 @@
 import { createAction } from 'redux-actions'
 
-import { CREATE_GAME, WATCH_GAME, JOIN_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
+import { CREATE_GAME, PLAY_MOVE, WATCH_GAME, JOIN_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
 
 export const createNewGame = createAction(CREATE_GAME)
 
@@ -13,3 +13,5 @@ export const joinGame = createAction(JOIN_GAME, (id, shipPositions) => ({ id, sh
 export const loadGames = createAction(LOAD_GAMES)
 
 export const loadMyGames = createAction(LOAD_MY_GAMES)
+
+export const playMove = createAction(PLAY_MOVE, (id, game, x, y) => ({ id, game, x, y }))

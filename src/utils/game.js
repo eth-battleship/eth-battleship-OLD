@@ -2,6 +2,7 @@ import _ from 'lodash'
 import { bytesToHex, hexToBytes } from 'web3-utils'
 
 import { GAME_STATUS } from './constants'
+import { getStore } from '../redux'
 
 export const getColor = shipSize => {
   switch (shipSize) {
@@ -118,20 +119,13 @@ export const shipLengthsToSolidityBytesHex = shipLengths => bytesToHex(shipLengt
 
 export const solidityBytesHexToShipLengths = hex => hexToBytes(hex)
 
-export const convertMovesHistoryToBitObject = (boardLength, moves) => (
-  moves.reduce((m, { x, y }) => {
-    m[x * boardLength + y] = true
-    return m
-  }, {})
-)
-
-export const doesMovesBitObjectContainPoint = (boardLength, movesBits, x, y) => (
-  !!movesBits[x * boardLength + y]
-)
-
 export const getNextPlayerToPlay = game => {
-  const p1moves = _.get(game, 'player1Data.moves')
-  const p2moves = _.get(game, 'player2Data.moves')
+  if (game.round > game.maxRounds) {
+    return null
+  }
+
+  const p1moves = _.get(game, 'player1Moves')
+  const p2moves = _.get(game, 'player2Moves')
 
   if (!p1moves || !p2moves) {
     return 1
@@ -147,9 +141,23 @@ export const getFriendlyGameStatus = (status, game) => {
     case GAME_STATUS.PLAYING: {
       let str
       if (game) {
+        const account = getStore().selectors.getDefaultAccount()
+
+        const playerOneIsMe = account && _.get(game, 'player1') === account
+        const playerTwoIsMe = account && _.get(game, 'player2') === account
+
         const nextPlayer = getNextPlayerToPlay(game)
 
-        str = ` round ${game.round}, player${nextPlayer}'s turn`
+        let nextPlayerStr
+        if (playerOneIsMe) {
+          nextPlayerStr = (1 === nextPlayer) ? 'your' : 'opponent\'s'
+        } else if (playerTwoIsMe) {
+          nextPlayerStr = (1 === nextPlayer) ? 'opponent\'s' : 'your'
+        } else {
+          nextPlayerStr = (1 === nextPlayer) ? 'player1\'s' : 'player2\'s'
+        }
+
+        str = (!nextPlayer) ? ', ready to reveal' : ` round ${game.round}, ${nextPlayerStr} turn`
       }
 
       return `Playing${str}`

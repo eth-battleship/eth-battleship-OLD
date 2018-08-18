@@ -50,20 +50,20 @@ const processGame = async (Game, id, game, authKey, account, fetchAllDataFromCon
     game.maxRounds = sanitizeNumber(await contract.maxRounds.call())
     game.shipLengths = solidityBytesHexToShipLengths(await contract.ships.call())
 
-    game.player1Data.status = derivePlayerStatus((await contract.players.call(game.player1))[4])
-    if (game.player2Data) {
-      game.player2Data.status = derivePlayerStatus((await contract.players.call(game.player2))[4])
+    game.player1Status = derivePlayerStatus((await contract.players.call(game.player1))[4])
+    if (game.player2) {
+      game.player2Status = derivePlayerStatus((await contract.players.call(game.player2))[4])
     }
 
     if (isSameAddress(game.player1, account)) {
-      game.player1Data.board.plaintext = solidityBytesHexToShipPositions(
-        await decrypt(authKey, game.player1Data.board)
+      game.player1Board.plaintext = solidityBytesHexToShipPositions(
+        await decrypt(authKey, game.player1Board)
       )
     }
 
     if (isSameAddress(game.player2, account)) {
-      game.player2Data.board.plaintext = solidityBytesHexToShipPositions(
-        await decrypt(authKey, game.player2Data.board)
+      game.player2Board.plaintext = solidityBytesHexToShipPositions(
+        await decrypt(authKey, game.player2Board)
       )
     }
   }

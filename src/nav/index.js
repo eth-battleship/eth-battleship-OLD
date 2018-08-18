@@ -3,9 +3,9 @@ import { Switch, Route } from 'react-router'
 import { ConnectedRouter } from 'connected-react-router'
 
 import { getHistory } from '../redux'
-import Home from '../containers/Home'
-import NewGame from '../containers/NewGame'
-import ViewGame from '../containers/ViewGame'
+import Home from '../pages/Home'
+import NewGame from '../pages/NewGame'
+import ViewGame from '../pages/ViewGame'
 
 export const Router = () => (
   <ConnectedRouter history={getHistory()}>

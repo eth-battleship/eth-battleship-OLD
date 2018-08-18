@@ -1,4 +1,4 @@
-import { CREATE_GAME, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
+import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
 import { getStore } from '../'
 import { getGameContract } from '../../utils/contract'
 import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/game'
@@ -47,14 +47,40 @@ export default () => () => next => async action => {
       const account = getDefaultAccount()
 
       return cloudDb.watchGame(id, game => {
-        processGames(getWeb3(), { [id]: game }, authKey, account, true)
-          .catch(err => {
-            console.error('Error sanitizing game info', err)
-          })
-          .then(() => {
-            callback(game)
-          })
+        if (!game) {
+          callback(new Error('Game not found'))
+        } else {
+          processGames(getWeb3(), { [id]: game }, authKey, account, true)
+            .catch(err => {
+              console.error('Error sanitizing game info', err)
+
+              callback(err)
+            })
+            .then(() => {
+              callback(null, game)
+            })
+        }
       })
+    }
+    case PLAY_MOVE: {
+      await waitUntilAuthKeyObtained()
+
+      const { id, game, x, y } = action.payload
+
+      const account = getDefaultAccount()
+
+      const obj = {}
+
+      if (account === game.player1) {
+        obj.player1Moves = game.player1Moves.concat([ { x, y } ])
+      } else {
+        obj.player2Moves = game.player2Moves.concat([ { x, y } ])
+        obj.round = game.round + 1
+      }
+
+      await cloudDb.updateGame(id, obj)
+
+      break
     }
     case JOIN_GAME: {
       await waitUntilAuthKeyObtained()
@@ -90,10 +116,8 @@ export default () => () => next => async action => {
 
       await cloudDb.updateGame(id, {
         player2: account,
-        player2Data: {
-          board: await encrypt(authKey, board),
-          moves: []
-        },
+        player2Board: await encrypt(authKey, board),
+        player2Moves: [],
         round: 1
       })
 
@@ -135,10 +159,8 @@ export default () => () => next => async action => {
       await cloudDb.addGame(contract.address, {
         network,
         player1: await contract.player1.call(),
-        player1Data: {
-          board: await encrypt(authKey, board),
-          moves: []
-        },
+        player1Board: await encrypt(authKey, board),
+        player1Moves: [],
         /*
         We include the following props for convenience sake, so that we can quickly
         render the list of games in table without having to fetch these props

@@ -4,10 +4,14 @@ import LoadingIcon from '../LoadingIcon'
 
 export default class Button extends PureComponent {
   render () {
-    const { submitting, children, ...props } = this.props
+    const { submitting, className, children, ...props } = this.props
 
-    return submitting ? <LoadingIcon /> : (
-      <button {...props}>{children}</button>
+    return submitting ? (
+      <span className={className}>
+        <LoadingIcon />
+      </span>
+    ) : (
+      <button className={className} {...props}>{children}</button>
     )
   }
 }

@@ -37,8 +37,15 @@
 .noOpponentYet
   font-size 1.2rem
 
-.hitMarker
-  background-color: #f00
-  font-size 0.5rem
+$marker
   color: #fff
+  font-size 0.5rem
   padding 5px
+
+.hitMarker
+  @extend $marker
+  background-color: #f00
+
+.missMarker
+  @extend $marker
+  background-color: #999

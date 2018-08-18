@@ -8,13 +8,13 @@ import SetupGameBoard from '../../components/SetupGameBoard'
 import AuthenticatedView from '../../components/AuthenticatedView'
 import Ship from '../../components/Ship'
 import Loading from '../../components/Loading'
+import LoadingIcon from '../../components/LoadingIcon'
 import { connectStore } from '../../redux'
 import { GAME_STATUS } from '../../utils/constants'
 import { isSameAddress } from '../../utils/contract'
 import {
-  convertMovesHistoryToBitObject,
-  doesMovesBitObjectContainPoint,
-  getFriendlyGameStatus
+  getFriendlyGameStatus,
+  getNextPlayerToPlay
 } from '../../utils/game'
 
 import styles from './index.styl'
@@ -22,7 +22,8 @@ import styles from './index.styl'
 @connectStore('config')
 export default class ViewGame extends PureComponent {
   state = {
-    loading: true
+    error: null,
+    game: null
   }
 
   componentDidMount () {
@@ -38,7 +39,7 @@ export default class ViewGame extends PureComponent {
 
     this.setState({
       error: null,
-      loading: true
+      game: null
     }, () => {
       this.props.actions.watchGame(id, this._onGameUpdate)
         .then(unsub => {
@@ -59,22 +60,31 @@ export default class ViewGame extends PureComponent {
   }
 
   render () {
-    const { loading, error, game } = this.state
+    const { error, game } = this.state
 
     const id = this._getId(this.props)
+
+    let content = null
+
+    if (!error) {
+      content = (
+        <AuthenticatedView text='Please sign in to view game'>
+          {game ? this._renderGame(game) : <Loading />}
+        </AuthenticatedView>
+      )
+    }
 
     return (
       <div>
         <h2>Game: {id}</h2>
         {error ? <ErrorBox>{error}</ErrorBox> : null}
-        <AuthenticatedView text='Please sign in to view game'>
-          {loading ? <Loading /> : this._renderGame(game)}
-        </AuthenticatedView>
+        {content}
       </div>
     )
   }
 
   _renderGame (game) {
+    const { moving } = this.state
     const { shipLengths } = game
 
     return (
@@ -92,7 +102,7 @@ export default class ViewGame extends PureComponent {
           </div>
         </div>
         <div className={styles.meta}>
-          <div>Status: {this._renderGameStatus(game)}</div>
+          <div>Status: {moving ? <LoadingIcon /> : this._renderGameStatus(game)}</div>
         </div>
         <div className={styles.players}>
           <div className={styles.player}>
@@ -142,15 +152,25 @@ export default class ViewGame extends PureComponent {
 
   _renderPlayer (game, p) {
     const playerAddress = game[`player${p}`]
-
     if (!playerAddress) {
       return null
     }
 
-    const board = _.get(game, `player${p}Data.board.plaintext`)
+    const opponent = (1 === p ? 2 : 1)
+    const opponentAddress = game[`player${opponent}`]
 
-    const opponentMoves = _.get(game, `players${p === 1 ? 2 : 1}Data.moves`)
-    const opponentMovesBits = opponentMoves ? convertMovesHistoryToBitObject(opponentMoves) : {}
+    const { getDefaultAccount } = this.props.selectors
+    const account = getDefaultAccount()
+
+    const props = {}
+    // if i am the opponent and the opponent is to play next
+    if (account === opponentAddress && getNextPlayerToPlay(game) === opponent) {
+      props.applyHoverStyleToEmptyCell = this._applyHoverStyleToEmptyCell
+      props.onPress = this._buildCellSelector(game)
+    }
+
+    const board = _.get(game, `player${p}Board.plaintext`)
+    const opponentMoves = _.get(game, `player${opponent}Moves`, [])
 
     return (
       <div className={styles.playerBoard}>
@@ -161,22 +181,64 @@ export default class ViewGame extends PureComponent {
           boardLength={game.boardLength}
           shipLengths={game.shipLengths}
           shipPositions={board || {}}
-          renderCellContent={this._buildCellContentRenderer(game, opponentMovesBits)}
+          renderCellContent={this._buildCellContentRenderer(game, opponentMoves)}
+          {...props}
         />
       </div>
     )
   }
 
-  _buildCellContentRenderer = (game, movesBitObj) => (x, y) => {
-    if (doesMovesBitObjectContainPoint(game.boardLength, movesBitObj, x, y)) {
-      return (
-        <span className={styles.hitMarker}>
-          <i className='fa fa-cross' />
-        </span>
-      )
+  _applyHoverStyleToEmptyCell = (style, x, y, hoverX, hoverY) => {
+    if (hoverX === x && hoverY === y) {
+      style.cursor = 'pointer'
+      style.outline = '1px solid #f00'
     }
+  }
 
-    return null
+  _buildCellSelector = game => (x, y) => {
+    const id = this._getId(this.props)
+
+    this.setState({
+      error: null,
+      moving: true
+    }, () => {
+      this.props.actions.playMove(id, game, x, y)
+        .then(() => {
+          this.setState({
+            moving: false
+          })
+        })
+        .then(error => {
+          this.setState({
+            moving: false,
+            error
+          })
+        })
+    })
+  }
+
+  _buildCellContentRenderer = (game, opponentMoves) => (cellX, cellY) => {
+    let content = null
+
+    opponentMoves.forEach(({ x, y, hit }) => {
+      if (x === cellX && y === cellY) {
+        if (hit) {
+          content = (
+            <span className={styles.hitMarker}>
+              <i className='fa fa-cross' />
+            </span>
+          )
+        } else {
+          content = (
+            <span className={styles.missMarker}>
+              <i className='fa fa-cross' />
+            </span>
+          )
+        }
+      }
+    })
+
+    return content
   }
 
   _onJoinGame = ({ shipPositions }) => {
@@ -194,12 +256,18 @@ export default class ViewGame extends PureComponent {
     }
   }
 
-  _onGameUpdate = game => {
-    this.setState({
-      error: null,
-      loading: false,
-      game
-    })
+  _onGameUpdate = (error, game) => {
+    if (error) {
+      this.setState({
+        error,
+        game: null
+      })
+    } else {
+      this.setState({
+        error,
+        game
+      })
+    }
   }
 
   _getId = props => _.get(props, 'match.params.address')
