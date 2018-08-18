@@ -224,14 +224,14 @@ export default class ViewGame extends PureComponent {
       if (x === cellX && y === cellY) {
         if (hit) {
           content = (
-            <span className={styles.hitMarker}>
-              <i className='fa fa-cross' />
+            <span className={styles.hitMarker} title='Hit!'>
+              <i className='fa fa-times-circle' />
             </span>
           )
         } else {
           content = (
-            <span className={styles.missMarker}>
-              <i className='fa fa-cross' />
+            <span className={styles.missMarker} title='Miss'>
+              <i className='fa fa-times-circle' />
             </span>
           )
         }
