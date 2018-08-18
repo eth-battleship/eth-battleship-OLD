@@ -1,11 +1,11 @@
 {
-  "name": "blockchain-battleship",
+  "name": "eth-battleship",
   "private": true,
   "version": "1.0.0",
   "description": "Battleship game on Ethereum blockchain",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hiddentao/blockchain-battleship.git"
+    "url": "https://github.com/eth-battleship/eth-battleship.github.io.git"
   },
   "keywords": [
     "truffle",
@@ -17,9 +17,9 @@
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hiddentao/blockchain-battleship/issues"
+    "url": "https://github.com/eth-battleship/eth-battleship.github.io/issues"
   },
-  "homepage": "https://github.com/hiddentao/blockchain-battleship#readme",
+  "homepage": "https://github.com/eth-battleship/eth-battleship.github.io#readme",
   "devDependencies": {
     "autoprefixer": "6.5.1",
     "babel-core": "^6.17.0",
