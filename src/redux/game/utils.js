@@ -1,70 +1,78 @@
 import { toBN } from 'web3-utils'
 
+import cloudDb from '../../cloudDb'
 import { getGameContract, isSameAddress } from '../../utils/contract'
 import {
   solidityBytesHexToShipLengths,
-  solidityBytesHexToShipPositions
+  updateMoveHits,
+  deriveGameStatusFromContractValue,
+  derivePlayerStatusFromContractValue,
+  mergePrivateMovesWithPublicMoves
 } from '../../utils/game'
-import { GAME_STATUS, PLAYER_STATUS } from '../../utils/constants'
-import { decrypt } from '../../utils/crypto'
+import { GAME_STATUS } from '../../utils/constants'
+
 
 const sanitizeNumber = n => toBN(n).toNumber()
 
-const deriveGameStatus = statusValue => {
-  switch (statusValue) {
-    case 0:
-      return GAME_STATUS.NEED_OPPONENT
-    case 1:
-      return GAME_STATUS.PLAYING
-    case 2:
-      return GAME_STATUS.REVEAL_MOVES
-    case 3:
-      return GAME_STATUS.REVEAL_BOARD
-    default:
-      return GAME_STATUS.OVER
-  }
-}
 
-const derivePlayerStatus = statusValue => {
-  switch (statusValue) {
-    case 0:
-      return PLAYER_STATUS.READY
-    case 1:
-      return PLAYER_STATUS.PLAYING
-    case 2:
-      return PLAYER_STATUS.REVEALED_MOVES
-    default:
-      return PLAYER_STATUS.REVEAL_BOARD
-  }
-}
 
 const processGame = async (Game, id, game, authKey, account, fetchAllDataFromContract = false) => {
   const contract = await Game.at(id)
 
-  game.status = deriveGameStatus(sanitizeNumber(await contract.state.call()))
+  const [
+    ships,
+    boardLength,
+    maxRounds,
+    state,
+    player1,
+    player2
+  ] = await contract.getMetadata.call()
+
+  game.player1 = player1
+  game.player2 = player2
+  game.maxRounds = sanitizeNumber(maxRounds)
+  game.boardLength = sanitizeNumber(boardLength)
+  game.shipLengths = solidityBytesHexToShipLengths(ships)
+  game.status = deriveGameStatusFromContractValue(sanitizeNumber(state))
+
+  // all rounds played then game is ready to be revealed
+  if (game.status === GAME_STATUS.PLAYING && game.round > game.maxRounds) {
+    game.status = GAME_STATUS.REVEAL_MOVES
+  }
 
   if (fetchAllDataFromContract) {
-    game.player1 = await contract.player1.call()
-    game.player2 = await contract.player2.call()
-    game.boardLength = sanitizeNumber(await contract.boardSize.call())
-    game.maxRounds = sanitizeNumber(await contract.maxRounds.call())
-    game.shipLengths = solidityBytesHexToShipLengths(await contract.ships.call())
+    const isPlayer1 = isSameAddress(game.player1, account)
+    const isPlayer2 = isSameAddress(game.player2, account)
 
-    game.player1Status = derivePlayerStatus((await contract.players.call(game.player1))[4])
+    if (isPlayer1 || isPlayer2) {
+      const { shipPositions, moves } = await cloudDb.getPlayerData(id, authKey)
+
+      if (isPlayer1) {
+        game.player1Board = shipPositions
+        game.player1Moves = mergePrivateMovesWithPublicMoves(moves, game.player1Moves)
+      } else {
+        game.player2Board = shipPositions
+        game.player2Moves = mergePrivateMovesWithPublicMoves(moves, game.player2Moves)
+      }
+    }
+
+    game.player1Status = derivePlayerStatusFromContractValue(
+      (await contract.players.call(game.player1))[4]
+    )
+
     if (game.player2) {
-      game.player2Status = derivePlayerStatus((await contract.players.call(game.player2))[4])
-    }
-
-    if (isSameAddress(game.player1, account)) {
-      game.player1Board.plaintext = solidityBytesHexToShipPositions(
-        await decrypt(authKey, game.player1Board)
+      game.player2Status = derivePlayerStatusFromContractValue(
+        (await contract.players.call(game.player2))[4]
       )
     }
 
-    if (isSameAddress(game.player2, account)) {
-      game.player2Board.plaintext = solidityBytesHexToShipPositions(
-        await decrypt(authKey, game.player2Board)
-      )
+    // calculate player hits
+    if (game.player2Board) {
+      updateMoveHits(game.player2Board, game.shipLengths, game.player1Moves)
+    }
+
+    if (game.player1Board) {
+      updateMoveHits(game.player1Board, game.shipLengths, game.player2Moves)
     }
   }
 }

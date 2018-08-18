@@ -7,6 +7,7 @@ export const getDefaultAccount = state => state.config.get('defaultAccount')
 
 export const getNetwork = state => state.config.get('network')
 export const getAuthKey = state => state.config.get('authKey')
+export const getEncryptionKey = state => state.config.get('encryptionKey')
 
-export const waitUntilAuthKeyObtained = state => state.config.get('_authKeyPromise').promise
+export const waitUntilKeysObtained = state => state.config.get('_keyPromise').promise
 export const waitUntilWeb3Connected = state => state.config.get('_web3Promise').promise

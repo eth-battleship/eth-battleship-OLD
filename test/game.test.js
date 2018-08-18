@@ -117,7 +117,27 @@ contract('setup contract', accounts => {
   })
 })
 
-contract('helper functions', () => {
+contract('helper functions', accounts => {
+  describe('.getMetadata', () => {
+    let game
+
+    beforeEach(async () => {
+      game = await Game.new(shipSizes, 2, 3, player1BoardHash)
+      await game.join(player2BoardHash, { from: accounts[1] })
+    })
+
+    it('returns metdata', async () => {
+      await _assertCall(game.getMetadata, [
+        shipSizes,
+        2,
+        3,
+        1,
+        accounts[0],
+        accounts[1]
+      ])
+    })
+  })
+
   describe('.countBits()', () => {
     it('works as expected', async () => {
       const game = await Game.deployed()

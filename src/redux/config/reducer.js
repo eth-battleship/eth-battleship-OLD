@@ -4,9 +4,9 @@ import { handleActions } from 'redux-actions'
 import { SETUP_WEB3, AUTHENTICATE } from './actions'
 
 export default () => {
-  const _authKeyPromise = {}
-  _authKeyPromise.promise = new Promise(resolve => {
-    _authKeyPromise.resolve = resolve
+  const _keyPromise = {}
+  _keyPromise.promise = new Promise(resolve => {
+    _keyPromise.resolve = resolve
   })
 
   const _web3Promise = {}
@@ -24,11 +24,12 @@ export default () => {
         .set('network', network.toLowerCase())
         .set('web3Error', web3Error)
     },
-    [AUTHENTICATE]: (state, { payload: { authKey, signingAccount } }) => {
-      _authKeyPromise.resolve()
+    [AUTHENTICATE]: (state, { payload: { encryptionKey, authKey, signingAccount } }) => {
+      _keyPromise.resolve()
 
       return state
         .set('defaultAccount', signingAccount)
+        .set('encryptionKey', encryptionKey.toLowerCase())
         .set('authKey', authKey.toLowerCase())
     }
   }, Immutable.Map({
@@ -38,7 +39,8 @@ export default () => {
     web3: null,
     _web3Promise,
     web3Error: null,
+    encryptionKey: null,
     authKey: null,
-    _authKeyPromise
+    _keyPromise
   }))
 }

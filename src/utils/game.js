@@ -1,13 +1,13 @@
 import _ from 'lodash'
 import { bytesToHex, hexToBytes } from 'web3-utils'
 
-import { GAME_STATUS } from './constants'
+import { GAME_STATUS, PLAYER_STATUS } from './constants'
 import { getStore } from '../redux'
 
 export const getColor = shipSize => {
   switch (shipSize) {
     case 5: {
-      return '#E205FF'
+      return '#FFC057'
     }
     case 4: {
       return '#0C0CE8'
@@ -36,6 +36,21 @@ export const shipSitsOn = (shipPosition, shipLength, x, y) => {
   const { x: endX, y: endY } = calculateShipEndPoint(startX, startY, sv, shipLength)
 
   return (startX <= x && startY <= y && endX >= x && endY >= y)
+}
+
+
+export const shipsSitOn = (shipPositions, shipLengths, x, y) => (
+  Object.keys(shipPositions).reduce((m, shipId) => (
+    m || shipSitsOn(shipPositions[shipId], shipLengths[shipId], x, y)
+  ), false)
+)
+
+
+export const updateMoveHits = (shipPositions, shipLengths, moves) => {
+  Object.keys(moves).forEach(idx => {
+    const move = moves[idx]
+    move.hit = shipsSitOn(shipPositions, shipLengths, move.x, move.y)
+  })
 }
 
 
@@ -171,4 +186,48 @@ export const getFriendlyGameStatus = (status, game) => {
     default:
       return 'Unknown'
   }
+}
+
+
+export const deriveGameStatusFromContractValue = statusValue => {
+  switch (statusValue) {
+    case 0:
+      return GAME_STATUS.NEED_OPPONENT
+    case 1:
+      return GAME_STATUS.PLAYING
+    case 2:
+      return GAME_STATUS.REVEAL_MOVES
+    case 3:
+      return GAME_STATUS.REVEAL_BOARD
+    default:
+      return GAME_STATUS.OVER
+  }
+}
+
+export const derivePlayerStatusFromContractValue = statusValue => {
+  switch (statusValue) {
+    case 0:
+      return PLAYER_STATUS.READY
+    case 1:
+      return PLAYER_STATUS.PLAYING
+    case 2:
+      return PLAYER_STATUS.REVEALED_MOVES
+    default:
+      return PLAYER_STATUS.REVEAL_BOARD
+  }
+}
+
+
+export const mergePrivateMovesWithPublicMoves = (mine, common) => {
+  const ret = []
+
+  mine.forEach(({ x, y }, index) => {
+    const { x: px, y: py } = common.length > index ? common[index] : {}
+
+    if (px === x && py === y) {
+      ret.push({ x, y, hit: common[index].hit })
+    }
+  })
+
+  return ret
 }

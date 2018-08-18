@@ -6,15 +6,30 @@ const _buildGamesQuery = network => (
   db.collection('games')
     .where('network', '==', network)
     .orderBy('created', 'desc')
-    .limit(100)
+    .limit(10)
 )
 
+const _buildPlayerDataId = (gameId, playerAuthKey) => `${gameId}-${playerAuthKey}`
+
 module.exports = {
-  addGame: async (id, doc) => db.collection('games').doc(id).set({
-    ...doc,
-    created: Date.now()
-  }),
-  updateGame: async (id, props) => db.collection('games').doc(id).set(props, { merge: true }),
+  addGame: async (id, gameData, playerAuthKey, playerData) => (
+    Promise.all([
+      db.collection('games').doc(id).set({
+        ...gameData,
+        created: Date.now()
+      }),
+      db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData)
+    ])
+  ),
+  updateGame: async (id, gameData, playerAuthKey, playerData) => (
+    Promise.all([
+      db.collection('games').doc(id).set(gameData, { merge: true }),
+      db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData, { merge: true }),
+    ])
+  ),
+  getPlayerData: async (gameId, playerAuthKey) => (
+    (await db.collection('playerData').doc(_buildPlayerDataId(gameId, playerAuthKey)).get()).data()
+  ),
   watchGame: async (id, cb) => db.collection('games').doc(id).onSnapshot(snapshot => {
     cb(snapshot.data())
   }),

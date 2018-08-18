@@ -2,7 +2,6 @@ import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAME
 import { getStore } from '../'
 import { getGameContract } from '../../utils/contract'
 import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/game'
-import { encrypt } from '../../utils/crypto'
 import cloudDb from '../../cloudDb'
 import { processGames } from './utils'
 
@@ -17,12 +16,12 @@ export default () => () => next => async action => {
     getAuthKey,
     getNetwork,
     waitUntilWeb3Connected,
-    waitUntilAuthKeyObtained,
+    waitUntilKeysObtained,
   } } = store
 
   switch (action.type) {
     case LOAD_MY_GAMES: {
-      await waitUntilAuthKeyObtained()
+      await waitUntilKeysObtained()
 
       const account = getDefaultAccount()
 
@@ -38,7 +37,7 @@ export default () => () => next => async action => {
       return cloudDb.loadGames(getNetwork())
     }
     case WATCH_GAME: {
-      await waitUntilAuthKeyObtained()
+      await waitUntilKeysObtained()
 
       const authKey = await getAuthKey()
 
@@ -63,27 +62,34 @@ export default () => () => next => async action => {
       })
     }
     case PLAY_MOVE: {
-      await waitUntilAuthKeyObtained()
+      await waitUntilKeysObtained()
 
       const { id, game, x, y } = action.payload
 
       const account = getDefaultAccount()
 
-      const obj = {}
+      // always update moves arrays
+      const newGameData = {
+        player1Moves: game.player1Moves,
+        player2Moves: game.player2Moves
+      }
+      const newPlayerData = {}
 
       if (account === game.player1) {
-        obj.player1Moves = game.player1Moves.concat([ { x, y } ])
+        newGameData.player1Moves = game.player1Moves.concat([ { x, y } ])
+        newPlayerData.moves = newGameData.player1Moves
       } else {
-        obj.player2Moves = game.player2Moves.concat([ { x, y } ])
-        obj.round = game.round + 1
+        newGameData.player2Moves = game.player2Moves.concat([ { x, y } ])
+        newPlayerData.moves = newGameData.player2Moves
+        newGameData.round = game.round + 1
       }
 
-      await cloudDb.updateGame(id, obj)
+      await cloudDb.updateGame(id, newGameData, getAuthKey(), newPlayerData)
 
       break
     }
     case JOIN_GAME: {
-      await waitUntilAuthKeyObtained()
+      await waitUntilKeysObtained()
 
       const { id, shipPositions } = action.payload
 
@@ -116,9 +122,10 @@ export default () => () => next => async action => {
 
       await cloudDb.updateGame(id, {
         player2: account,
-        player2Board: await encrypt(authKey, board),
-        player2Moves: [],
         round: 1
+      }, authKey, {
+        shipPositions,
+        moves: []
       })
 
       console.log(`...done`)
@@ -126,7 +133,7 @@ export default () => () => next => async action => {
       return Promise.resolve()
     }
     case CREATE_GAME: {
-      await waitUntilAuthKeyObtained()
+      await waitUntilKeysObtained()
 
       const authKey = await getAuthKey()
       const network = await getNetwork()
@@ -159,8 +166,9 @@ export default () => () => next => async action => {
       await cloudDb.addGame(contract.address, {
         network,
         player1: await contract.player1.call(),
-        player1Board: await encrypt(authKey, board),
         player1Moves: [],
+        player2: null,
+        player2Moves: [],
         /*
         We include the following props for convenience sake, so that we can quickly
         render the list of games in table without having to fetch these props
@@ -171,6 +179,9 @@ export default () => () => next => async action => {
         boardLength,
         maxRounds,
         shipLengths
+      }, authKey, /* player1's private data */ {
+        shipPositions,
+        moves: []
       })
 
       console.log(`...done`)

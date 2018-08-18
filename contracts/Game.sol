@@ -251,6 +251,27 @@ contract Game {
   ------------------------------------------------------------
   */
 
+
+  /**
+   * Convenience method for fetching metadata in a single call.
+   */
+  function getMetadata() public view returns (
+    bytes _ships,
+    uint _boardSize,
+    uint _maxRounds,
+    GameState _state,
+    address _player1,
+    address _player2
+  ) {
+    _ships = ships;
+    _maxRounds = maxRounds;
+    _boardSize = boardSize;
+    _state = state;
+    _player1 = player1;
+    _player2 = player2;
+  }
+
+
   /**
    * Count no. of its in given number.
    *

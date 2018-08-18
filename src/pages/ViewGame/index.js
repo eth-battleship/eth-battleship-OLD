@@ -127,6 +127,7 @@ export default class ViewGame extends PureComponent {
   }
 
   _renderNoOpponent = (game, shipLengths) => {
+    const { joining } = this.state
     const { getDefaultAccount } = this.props.selectors
 
     if (isSameAddress(getDefaultAccount(), game.player1)) {
@@ -145,6 +146,7 @@ export default class ViewGame extends PureComponent {
           shipLengths={shipLengths}
           onPressButton={this._onJoinGame}
           buttonText='Join game'
+          buttonSubmitting={joining}
         />
       </AuthenticatedView>
     )
@@ -162,14 +164,16 @@ export default class ViewGame extends PureComponent {
     const { getDefaultAccount } = this.props.selectors
     const account = getDefaultAccount()
 
+    const iAmOpponent = account === opponentAddress
+
     const props = {}
     // if i am the opponent and the opponent is to play next
-    if (account === opponentAddress && getNextPlayerToPlay(game) === opponent) {
+    if (iAmOpponent && getNextPlayerToPlay(game) === opponent) {
       props.applyHoverStyleToEmptyCell = this._applyHoverStyleToEmptyCell
       props.onPress = this._buildCellSelector(game)
     }
 
-    const board = _.get(game, `player${p}Board.plaintext`)
+    const board = _.get(game, `player${p}Board`, {})
     const opponentMoves = _.get(game, `player${opponent}Moves`, [])
 
     return (
@@ -180,8 +184,8 @@ export default class ViewGame extends PureComponent {
         <GameBoard
           boardLength={game.boardLength}
           shipLengths={game.shipLengths}
-          shipPositions={board || {}}
-          renderCellContent={this._buildCellContentRenderer(game, opponentMoves)}
+          shipPositions={board}
+          renderCellContent={this._buildCellContentRenderer(game, opponentMoves, iAmOpponent)}
           {...props}
         />
       </div>
@@ -200,7 +204,7 @@ export default class ViewGame extends PureComponent {
 
     this.setState({
       error: null,
-      moving: true
+      moving: { x, y }
     }, () => {
       this.props.actions.playMove(id, game, x, y)
         .then(() => {
@@ -217,26 +221,35 @@ export default class ViewGame extends PureComponent {
     })
   }
 
-  _buildCellContentRenderer = (game, opponentMoves) => (cellX, cellY) => {
+  _buildCellContentRenderer = (game, opponentMoves, iAmOpponent) => (cellX, cellY) => {
+    const { moving } = this.state
     let content = null
 
-    opponentMoves.forEach(({ x, y, hit }) => {
-      if (x === cellX && y === cellY) {
-        if (hit) {
-          content = (
-            <span className={styles.hitMarker} title='Hit!'>
-              <i className='fa fa-times-circle' />
-            </span>
-          )
-        } else {
-          content = (
-            <span className={styles.missMarker} title='Miss'>
-              <i className='fa fa-times-circle' />
-            </span>
-          )
+    if (iAmOpponent && moving && moving.x === cellX && moving.y === cellY) {
+      content = (
+        <span className={styles.missMarker}>
+          <i className='fa fa-spin fa-spinner' />
+        </span>
+      )
+    } else {
+      opponentMoves.forEach(({ x, y, hit }) => {
+        if (x === cellX && y === cellY) {
+          if (hit) {
+            content = (
+              <span className={styles.hitMarker} title='Hit!'>
+                <i className='fa fa-times-circle' />
+              </span>
+            )
+          } else {
+            content = (
+              <span className={styles.missMarker} title='Miss'>
+                <i className='fa fa-times-circle' />
+              </span>
+            )
+          }
         }
-      }
-    })
+      })
+    }
 
     return content
   }
@@ -247,12 +260,23 @@ export default class ViewGame extends PureComponent {
     if (id) {
       const { joinGame } = this.props.actions
 
-      joinGame(id, shipPositions)
-        .catch(error => {
-          this.setState({
-            error
+      this.setState({
+        joining: true,
+        error: null
+      }, () => {
+        joinGame(id, shipPositions)
+          .then(() => {
+            this.setState({
+              joining: false
+            })
           })
-        })
+          .catch(error => {
+            this.setState({
+              joining: false,
+              error
+            })
+          })
+      })
     }
   }
 
