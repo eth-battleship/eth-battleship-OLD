@@ -1,5 +1,8 @@
 @import '../../utils/common.styl'
 
+.error
+  margin-bottom 1rem
+
 .meta
   @extend $flexRowWrap
   margin-bottom: 0.5em
@@ -25,6 +28,7 @@
   font-size 0.9rem
 
 .playerBoard
+  position relative
   @extend $flexColumn
   background-color: #efefef
   border-radius: 5px
@@ -34,8 +38,17 @@
   font-size 0.8rem
   margin-bottom 1rem
 
+.playerHits
+  font-size 0.7rem
+  font-style italic
+  color #999
+  margin-bottom 0.3rem
+
 .noOpponentYet
   font-size 1.2rem
+
+.statusText
+  font-weight bold
 
 $marker
   @extend $flexColumn
@@ -53,3 +66,14 @@ $marker
 .missMarker
   @extend $marker
   color: #999
+
+.reveal
+  @extend $coverParent
+  @extend $flexColumn
+  justify-content: center
+  background-color: rgba(0, 0, 0, 0.6)
+  z-index 1
+  font-size 1.2rem
+  color #fff
+  text-align: center
+  padding 2em

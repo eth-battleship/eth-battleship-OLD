@@ -46,11 +46,17 @@ To run the app (against locally running dev chain):
 
 ## Tech architecture
 
+The on-chain contract is used for "settlement" only - all moves are recorded off-chain
+to ensure a good user experience (i.e. no delays and no need to make expensive
+contract calls whilst game is in progress).
+
 **Authentication**
 
-Off-chain data is currently stored in the Google Firestore cloudb - I chose this
-as it was easy and quick to get started with compared to IPFS/Swarm. For v2 I
-would look into using those storage systems.
+Off-chain data is currently stored in Google Firestore cloud - I chose this
+as it was easy and quick to get started with compared to IPFS/Swarm, plus it
+provides real-time push updates built-in, meaning the game UI can be updated
+in real-time as and when events take place. For v2 I would look into using
+more decentralized alternatives and writing my own real-time notificatin system.
 
 An individual
 player's boards and moves data for a given game is stored in document only

@@ -11,7 +11,7 @@ import styles from './index.styl'
 export default class NewGame extends PureComponent {
   state = {
     submitting: false,
-    maxRounds: 30,
+    maxRounds: 1,
     boardLength: 10,
     shipLengths: [ 5, 4, 3, 3, 2 ],
   }

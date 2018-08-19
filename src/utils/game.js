@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { bytesToHex, hexToBytes } from 'web3-utils'
+import { bytesToHex, hexToBytes, toBN } from 'web3-utils'
 
 import { GAME_STATUS, PLAYER_STATUS } from './constants'
 import { getStore } from '../redux'
@@ -150,17 +150,16 @@ export const getNextPlayerToPlay = game => {
 }
 
 export const getFriendlyGameStatus = (status, game) => {
+  const account = getStore().selectors.getDefaultAccount()
+  const playerOneIsMe = game && account && _.get(game, 'player1') === account
+  const playerTwoIsMe = game && account && _.get(game, 'player2') === account
+
   switch (status) {
     case GAME_STATUS.NEED_OPPONENT:
       return 'Awaiting opponent'
     case GAME_STATUS.PLAYING: {
       let str
       if (game) {
-        const account = getStore().selectors.getDefaultAccount()
-
-        const playerOneIsMe = account && _.get(game, 'player1') === account
-        const playerTwoIsMe = account && _.get(game, 'player2') === account
-
         const nextPlayer = getNextPlayerToPlay(game)
 
         let nextPlayerStr
@@ -177,12 +176,81 @@ export const getFriendlyGameStatus = (status, game) => {
 
       return `Playing${str}`
     }
-    case GAME_STATUS.REVEAL_MOVES:
-      return 'Reveal moves'
-    case GAME_STATUS.REVEAL_BOARD:
-      return 'Reveal boards'
-    case GAME_STATUS.OVER:
-      return 'Over'
+    case GAME_STATUS.REVEAL_MOVES: {
+      const p1Status = game.player1Status
+      const p2Status = game.player2Status
+
+      if (p1Status === PLAYER_STATUS.REVEALED_MOVES) {
+        if (playerTwoIsMe) {
+          return 'You need to reveal your moves to the contract'
+        } else if (playerOneIsMe) {
+          return 'Opponent needs to reveal their moves to the contract'
+        }
+
+        return 'Player2 needs to reveal their moves to the contract'
+      } else if (p2Status === PLAYER_STATUS.REVEALED_MOVES) {
+        if (playerOneIsMe) {
+          return 'You need to reveal your moves to the contract'
+        } else if (playerTwoIsMe) {
+          return 'Opponent needs to reveal their moves to the contract'
+        }
+
+        return 'Player1 needs to reveal their moves to the contract'
+      }
+
+      return 'Players need to reveal their moves to the contract'
+    }
+    case GAME_STATUS.REVEAL_BOARD: {
+      const p1Status = game.player1Status
+      const p2Status = game.player2Status
+
+      if (p1Status === PLAYER_STATUS.REVEALED_BOARD) {
+        if (playerTwoIsMe) {
+          return 'You need to reveal your board to the contract'
+        } else if (playerOneIsMe) {
+          return 'Opponent needs to reveal their board to the contract'
+        }
+
+        return 'Player2 needs to reveal their board to the contract'
+      } else if (p2Status === PLAYER_STATUS.REVEALED_BOARD) {
+        if (playerOneIsMe) {
+          return 'You need to reveal your board to the contract'
+        } else if (playerTwoIsMe) {
+          return 'Opponent needs to reveal their board to the contract'
+        }
+
+        return 'Player1 needs to reveal their board to the contract'
+      }
+
+      return 'Players need to reveal their boards to the contract'
+    }
+    case GAME_STATUS.OVER: {
+      const { p1Hits, p2Hits } = game
+
+      let str
+
+      if (p1Hits > p2Hits) {
+        if (playerOneIsMe) {
+          str = 'You won 😄'
+        } else if (playerTwoIsMe) {
+          str = 'Your opponent won 😞'
+        } else {
+          str = 'Player1 won'
+        }
+      } else if (p2Hits > p1Hits) {
+        if (playerTwoIsMe) {
+          str = 'You won 😄'
+        } else if (playerOneIsMe) {
+          str = 'Your opponent won 😞'
+        } else {
+          str = 'Player2 won'
+        }
+      } else {
+        str = 'Neither player won ¯\\_(ツ)_/¯'
+      }
+
+      return `Game Over - ${str}`
+    }
     default:
       return 'Unknown'
   }
@@ -199,8 +267,10 @@ export const deriveGameStatusFromContractValue = statusValue => {
       return GAME_STATUS.REVEAL_MOVES
     case 3:
       return GAME_STATUS.REVEAL_BOARD
-    default:
+    case 4:
       return GAME_STATUS.OVER
+    default:
+      return GAME_STATUS.UNKNOWN
   }
 }
 
@@ -212,8 +282,10 @@ export const derivePlayerStatusFromContractValue = statusValue => {
       return PLAYER_STATUS.PLAYING
     case 2:
       return PLAYER_STATUS.REVEALED_MOVES
+    case 3:
+      return PLAYER_STATUS.REVEALED_BOARD
     default:
-      return PLAYER_STATUS.REVEAL_BOARD
+      return PLAYER_STATUS.UNKNOWN
   }
 }
 
@@ -224,10 +296,59 @@ export const mergePrivateMovesWithPublicMoves = (mine, common) => {
   mine.forEach(({ x, y }, index) => {
     const { x: px, y: py } = common.length > index ? common[index] : {}
 
-    if (px === x && py === y) {
-      ret.push({ x, y, hit: common[index].hit })
-    }
+    const hit = (px === x && py === y) ? common[index].hit : 0
+
+    ret.push({ x, y, hit })
   })
 
   return ret
+}
+
+
+export const calculateMovesAndHitsFromFinalContractValue = (
+  boardLength, shipLengths, shipPositions, moveUint256
+) => {
+  const moveBits = toBN(moveUint256)
+  const moveBitsStr = moveBits.toString(2, 256)
+  const moves = []
+
+  for (let i = 0; boardLength > i; i += 1) {
+    for (let j = 0; boardLength > j; j += 1) {
+      if (moveBits.testn(i * boardLength + j)) {
+        moves.push({ x: i, y: j, hit: 0 })
+      }
+    }
+  }
+
+  Object.keys(shipPositions).forEach(shipId => {
+    const { x, y, isVertical } = shipPositions[shipId]
+
+    const { x: endX, y: endY } = calculateShipEndPoint(x, y, isVertical, shipLengths[shipId])
+
+    for (let i = x; endX >= i; i += 1) {
+      for (let j = y; endY >= j; j += 1) {
+        // quickly check to see if hit
+        if ('1' === moveBitsStr.charAt(i * boardLength + j)) {
+          moves.forEach(move => {
+            if (move.x === x && move.y === y) {
+              move.hit = 1
+            }
+          })
+        }
+      }
+    }
+  })
+
+  return moves
+}
+
+
+export const moveArrayTo256BitBN = (boardLength, moveArray) => {
+  let bn = toBN(0)
+
+  moveArray.forEach(({ x, y }) => {
+    bn = bn.bincn(x * boardLength + y)
+  })
+
+  return bn
 }

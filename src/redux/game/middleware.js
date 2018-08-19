@@ -1,7 +1,12 @@
-import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES } from './actions'
+import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES,
+  REVEAL_BOARD, REVEAL_MOVES } from './actions'
 import { getStore } from '../'
 import { getGameContract } from '../../utils/contract'
-import { shipPositionsToSolidityBytesHex, shipLengthsToSolidityBytesHex } from '../../utils/game'
+import {
+  shipPositionsToSolidityBytesHex,
+  shipLengthsToSolidityBytesHex,
+  moveArrayTo256BitBN
+} from '../../utils/game'
 import cloudDb from '../../cloudDb'
 import { processGames } from './utils'
 
@@ -25,6 +30,8 @@ export default () => () => next => async action => {
 
       const account = getDefaultAccount()
 
+      console.log('Load my games from cloud...')
+
       const games = await cloudDb.loadMyGames(getNetwork(), account)
 
       await processGames(getWeb3(), games, getAuthKey(), account)
@@ -34,6 +41,8 @@ export default () => () => next => async action => {
     case LOAD_GAMES: {
       await waitUntilWeb3Connected()
 
+      console.log('Load all games from cloud...')
+
       return cloudDb.loadGames(getNetwork())
     }
     case WATCH_GAME: {
@@ -42,6 +51,8 @@ export default () => () => next => async action => {
       const authKey = await getAuthKey()
 
       const { id, callback } = action.payload
+
+      console.log(`Load and watch game ${id} from cloud...`)
 
       const account = getDefaultAccount()
 
@@ -61,10 +72,62 @@ export default () => () => next => async action => {
         }
       })
     }
+    case REVEAL_MOVES: {
+      await waitUntilKeysObtained()
+
+      const { id, game, moves } = action.payload
+
+      const account = getDefaultAccount()
+      const web3 = getWeb3()
+
+      const Game = await getGameContract(web3, account)
+      const contract = await Game.at(id)
+
+      console.log('Calling contract revealMoves()...')
+
+      await contract.revealMoves(moveArrayTo256BitBN(game.boardLength, moves))
+
+      console.log(`...done`)
+
+      console.log(`Triggering real-time update to all clients...`)
+
+      await cloudDb.pingGame(id)
+
+      console.log(`...done`)
+
+      break
+    }
+    case REVEAL_BOARD: {
+      await waitUntilKeysObtained()
+
+      const { id, shipPositions } = action.payload
+
+      const account = getDefaultAccount()
+      const web3 = getWeb3()
+
+      const Game = await getGameContract(web3, account)
+      const contract = await Game.at(id)
+
+      console.log('Calling contract revealBoard()...')
+
+      await contract.revealBoard(shipPositionsToSolidityBytesHex(shipPositions))
+
+      console.log(`...done`)
+
+      console.log(`Triggering real-time update to all clients...`)
+
+      await cloudDb.pingGame(id)
+
+      console.log(`...done`)
+
+      break
+    }
     case PLAY_MOVE: {
       await waitUntilKeysObtained()
 
       const { id, game, x, y } = action.payload
+
+      console.log(`Play move (${x}, ${y}) for game ${id}...`)
 
       const account = getDefaultAccount()
 
@@ -86,12 +149,16 @@ export default () => () => next => async action => {
 
       await cloudDb.updateGame(id, newGameData, getAuthKey(), newPlayerData)
 
+      console.log(`...done`)
+
       break
     }
     case JOIN_GAME: {
       await waitUntilKeysObtained()
 
       const { id, shipPositions } = action.payload
+
+      console.log(`Join game ${id}...`)
 
       const authKey = await getAuthKey()
       const account = getDefaultAccount()
@@ -144,6 +211,8 @@ export default () => () => next => async action => {
 
       let contract = await Game.deployed()
 
+      console.log(`Create game...`)
+
       const { maxRounds, boardLength, shipPositions, shipLengths } = action.payload
 
       const ships = shipLengthsToSolidityBytesHex(shipLengths)
@@ -169,16 +238,6 @@ export default () => () => next => async action => {
         player1Moves: [],
         player2: null,
         player2Moves: [],
-        /*
-        We include the following props for convenience sake, so that we can quickly
-        render the list of games in table without having to fetch these props
-        from each individual contract. However, note that when viewing an
-        individual game we will override these values with what's in the
-        contract.
-        */
-        boardLength,
-        maxRounds,
-        shipLengths
       }, authKey, /* player1's private data */ {
         shipPositions,
         moves: []

@@ -27,6 +27,9 @@ module.exports = {
       db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData, { merge: true }),
     ])
   ),
+  pingGame: async id => (
+    db.collection('games').doc(id).set({ updated: Date.now() }, { merge: true })
+  ),
   getPlayerData: async (gameId, playerAuthKey) => (
     (await db.collection('playerData').doc(_buildPlayerDataId(gameId, playerAuthKey)).get()).data()
   ),

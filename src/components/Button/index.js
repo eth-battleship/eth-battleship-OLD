@@ -1,17 +1,18 @@
 import React, { PureComponent } from 'react'
+import cx from 'classnames'
 
 import LoadingIcon from '../LoadingIcon'
+
+import styles from './index.styl'
 
 export default class Button extends PureComponent {
   render () {
     const { submitting, className, children, ...props } = this.props
 
-    return submitting ? (
-      <span className={className}>
-        <LoadingIcon />
-      </span>
-    ) : (
-      <button className={className} {...props}>{children}</button>
+    return (
+      <button className={cx(styles.button, className)} {...props}>
+        {submitting ? <LoadingIcon /> : children}
+      </button>
     )
   }
 }

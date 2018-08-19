@@ -4,6 +4,8 @@ import cloudDb from '../../cloudDb'
 import { getGameContract, isSameAddress } from '../../utils/contract'
 import {
   solidityBytesHexToShipLengths,
+  solidityBytesHexToShipPositions,
+  calculateMovesAndHitsFromFinalContractValue,
   updateMoveHits,
   deriveGameStatusFromContractValue,
   derivePlayerStatusFromContractValue,
@@ -44,25 +46,50 @@ const processGame = async (Game, id, game, authKey, account, fetchAllDataFromCon
     const isPlayer1 = isSameAddress(game.player1, account)
     const isPlayer2 = isSameAddress(game.player2, account)
 
-    if (isPlayer1 || isPlayer2) {
-      const { shipPositions, moves } = await cloudDb.getPlayerData(id, authKey)
+    // if game over then contract contains moves and board
+    if (game.status === GAME_STATUS.OVER) {
+      const [ p1Board, /* boardHash */, p1Moves, p1Hits ] =
+        await contract.players.call(game.player1)
+      const [ p2Board, /* boardHash */, p2Moves, p2Hits ] =
+        await contract.players.call(game.player2)
 
-      if (isPlayer1) {
-        game.player1Board = shipPositions
-        game.player1Moves = mergePrivateMovesWithPublicMoves(moves, game.player1Moves)
-      } else {
-        game.player2Board = shipPositions
-        game.player2Moves = mergePrivateMovesWithPublicMoves(moves, game.player2Moves)
+      game.player1Hits = sanitizeNumber(p1Hits)
+      game.player2Hits = sanitizeNumber(p2Hits)
+
+      game.player1Board = solidityBytesHexToShipPositions(p1Board)
+      game.player2Board = solidityBytesHexToShipPositions(p2Board)
+
+      game.player1Moves = calculateMovesAndHitsFromFinalContractValue(
+        game.boardLength, game.shipLengths, game.player2Board, p1Moves
+      )
+      game.player2Moves = calculateMovesAndHitsFromFinalContractValue(
+        game.boardLength, game.shipLengths, game.player1Board, p2Moves
+      )
+    }
+    // game not yet over
+    else {
+      // if current player is participating in this game then we can decode board and moves
+      // eslint-disable-next-line no-lonely-if
+      if (isPlayer1 || isPlayer2) {
+        const { shipPositions, moves } = await cloudDb.getPlayerData(id, authKey)
+
+        if (isPlayer1) {
+          game.player1Board = shipPositions
+          game.player1Moves = mergePrivateMovesWithPublicMoves(moves, game.player1Moves)
+        } else {
+          game.player2Board = shipPositions
+          game.player2Moves = mergePrivateMovesWithPublicMoves(moves, game.player2Moves)
+        }
       }
     }
 
     game.player1Status = derivePlayerStatusFromContractValue(
-      (await contract.players.call(game.player1))[4]
+      sanitizeNumber((await contract.players.call(game.player1))[4])
     )
 
     if (game.player2) {
       game.player2Status = derivePlayerStatusFromContractValue(
-        (await contract.players.call(game.player2))[4]
+        sanitizeNumber((await contract.players.call(game.player2))[4])
       )
     }
 
