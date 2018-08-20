@@ -176,7 +176,7 @@ contract Game {
     canRevealBoard()
   {
     // board hash must match
-    assert(players[msg.sender].boardHash == calculateBoardHash(ships, boardSize, board_));
+    require(players[msg.sender].boardHash == calculateBoardHash(ships, boardSize, board_));
 
     // update player
     players[msg.sender].board = board_;
@@ -314,6 +314,8 @@ contract Game {
    * @return the SHA3 hash
    */
   function calculateBoardHash(bytes ships_, uint boardSize_, bytes board_) public pure returns (bytes32) {
+    uint marked = 0;
+
     // check that board setup is valid
     for (uint s = 0; ships_.length > s; s += 1) {
       // extract ship info
@@ -323,9 +325,22 @@ contract Game {
       bool isVertical = (0 < uint(board_[index + 2]));
       uint shipSize = uint(ships_[s]);
       // check validity of ship position
-      assert(0 <= x && boardSize_ > x);
-      assert(0 <= y && boardSize_ > y);
-      assert(boardSize_ >= ((isVertical ? x : y) + shipSize));
+      require(0 <= x && boardSize_ > x);
+      require(0 <= y && boardSize_ > y);
+      require(boardSize_ >= ((isVertical ? x : y) + shipSize));
+      // check that ship does not conflict with other ships on the board
+      uint endX = x + (isVertical ? shipSize : 1);
+      uint endY = y + (isVertical ? 1 : shipSize);
+      while (endX > x && endY > y) {
+        uint pos = calculateMove(boardSize_, x, y);
+        // ensure no ship already sits on this position
+        require((pos & marked) == 0);
+        // update position bit
+        marked = marked | pos;
+
+        x += (isVertical ? 1 : 0);
+        y += (isVertical ? 0 : 1);
+      }
     }
 
     return keccak256(board_);
