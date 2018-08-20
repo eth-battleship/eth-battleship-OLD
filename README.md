@@ -1,6 +1,8 @@
 ## blockchain-battleship
 
-Live demo (Ropsten): _TBC_
+[![Build Status](https://travis-ci.org/eth-battleship.github.io.svg?branch=source)](https://travis-ci.org/eth-battleship.github.io)
+
+Live demo (Ropsten): [https://eth-battleship.github.io/](https://eth-battleship.github.io/)
 
 ## Developer guide
 
