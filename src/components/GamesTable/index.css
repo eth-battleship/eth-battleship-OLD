@@ -3,7 +3,7 @@
   font-size: 0.9rem;
 }
 
-.ReactTable .rt-nodata {
+.ReactTable .rt-noData {
   top: 70%;
   padding: 0.1em 0.3em;
   background-color: rgba(0, 0, 0, 0);
