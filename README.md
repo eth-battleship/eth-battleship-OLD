@@ -1,6 +1,6 @@
 ## blockchain-battleship
 
-[![Build Status](https://travis-ci.org/eth-battleship.github.io.svg?branch=source)](https://travis-ci.org/eth-battleship.github.io)
+[![Build Status](https://travis-ci.org/eth-battleship/eth-battleship.github.io.svg?branch=source)](https://travis-ci.org/eth-battleship/eth-battleship.github.io)
 
 Live demo (Ropsten): [https://eth-battleship.github.io/](https://eth-battleship.github.io/)
 
