@@ -170,7 +170,7 @@ export default () => () => next => async action => {
 
       const board = shipPositionsToSolidityBytesHex(shipPositions)
 
-      console.log('Calculating board hash...')
+      console.log(`Calculating board hash for ${board}...`)
 
       const boardHash = await contract.calculateBoardHash.call(
         await contract.ships.call(),
@@ -220,7 +220,7 @@ export default () => () => next => async action => {
       const ships = shipLengthsToSolidityBytesHex(shipLengths)
       const board = shipPositionsToSolidityBytesHex(shipPositions)
 
-      console.log('Calculating board hash...')
+      console.log(`Calculating board hash for ${board}...`)
 
       const boardHash = await contract.calculateBoardHash.call(ships, boardLength, board)
 

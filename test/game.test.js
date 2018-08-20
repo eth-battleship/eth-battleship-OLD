@@ -178,6 +178,20 @@ contract('helper functions', accounts => {
       assert.equal(err.length, 0)
     })
 
+    it('works when ships are at edges', async () => {
+      const game = await Game.deployed()
+
+      const err = []
+
+      try {
+        await game.calculateBoardHash('0x0504030302', 10, '0x000000060001000901070901090700')
+      } catch (e) {
+        err.push(e)
+      }
+
+      assert.equal(err.length, 0)
+    })
+
     it('fails for invalid boards', async () => {
       const game = await Game.deployed()
 
@@ -192,6 +206,21 @@ contract('helper functions', accounts => {
       }
 
       assert.equal(err.length, Object.keys(invalidBoards).length)
+    })
+
+    it('fails when ships overlap', async () => {
+      const game = await Game.deployed()
+
+      let err
+
+      try {
+        // overlap on bottom-right corner of board
+        await game.calculateBoardHash('0x0504030303', 10, '0x000000060001000901070901090700')
+      } catch (e) {
+        err = e
+      }
+
+      assert.isDefined(err)
     })
   })
 })
