@@ -1,5 +1,7 @@
 var autoprefixer = require('autoprefixer');
 var webpack = require('webpack');
+var nib = require('nib');
+var rupture = require('rupture');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var ManifestPlugin = require('webpack-manifest-plugin');
@@ -116,6 +118,7 @@ module.exports = {
           /\.html$/,
           /\.(js|jsx)$/,
           /\.css$/,
+          /\.styl$/,
           /\.json$/,
           /\.woff$/,
           /\.woff2$/,
@@ -149,6 +152,11 @@ module.exports = {
         test: /\.css$/,
         loader: ExtractTextPlugin.extract('style', 'css?importLoaders=1!postcss')
         // Note: this won't work without `new ExtractTextPlugin()` in `plugins`.
+      },
+      // Stylus
+      {
+        test: /\.styl$/,
+        loader: ExtractTextPlugin.extract('style', 'css?modules&importLoaders=1&localIdentName=[name]__[local]___[hash:base64:5]!postcss!stylus')
       },
       // JSON is not enabled by default in Webpack but both Node and Browserify
       // allow it implicitly so we also enable it.
@@ -265,5 +273,8 @@ module.exports = {
     fs: 'empty',
     net: 'empty',
     tls: 'empty'
+  },
+  stylus: {
+    use: [nib(), rupture()]
   }
 };

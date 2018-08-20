@@ -19,7 +19,7 @@
   "bugs": {
     "url": "https://github.com/eth-battleship/eth-battleship.github.io/issues"
   },
-  "homepage": "https://github.com/eth-battleship/eth-battleship.github.io#readme",
+  "homepage": "/",
   "devDependencies": {
     "autoprefixer": "6.5.1",
     "babel-core": "^6.17.0",
@@ -46,6 +46,7 @@
     "file-loader": "0.9.0",
     "filesize": "3.3.0",
     "fs-extra": "0.30.0",
+    "gh-pages": "^1.2.0",
     "growl": "^1.10.5",
     "gzip-size": "3.0.0",
     "html-webpack-plugin": "2.24.0",
@@ -66,6 +67,7 @@
     "style-loader": "0.13.1",
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.2",
+    "truffle": "^4.1.14",
     "truffle-contract": "^1.1.8",
     "truffle-solidity-loader": "0.0.8",
     "url-loader": "0.5.7",
@@ -96,7 +98,9 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "test": "node scripts/test.js --env=jsdom"
+    "test": "node scripts/test.js --env=jsdom",
+    "deploy": "gh-pages -d build_webpack -o origin -b master",
+    "truffle": "truffle"
   },
   "jest": {
     "collectCoverageFrom": [

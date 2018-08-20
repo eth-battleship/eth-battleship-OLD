@@ -3,3 +3,5 @@ installed_contracts
 node_modules
 build_webpack
 build
+.deploy-key.tgz
+.deploy-key/
