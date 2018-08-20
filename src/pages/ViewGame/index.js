@@ -1,5 +1,6 @@
 import _ from 'lodash'
 import React, { PureComponent } from 'react'
+import cx from 'classnames'
 
 import Address from '../../components/Address'
 import GameBoard from '../../components/GameBoard'
@@ -173,9 +174,14 @@ export default class ViewGame extends PureComponent {
     const opponentHits = _.get(game, `player${opponent}Hits`, undefined)
     const opponentMoves = _.get(game, `player${opponent}Moves`, [])
 
+    const playerIcon = (game.status === GAME_STATUS.PLAYING && getNextPlayerToPlay(game) === p)
+      ? <i className={cx('fa fa-caret-right', styles.activePlayerIcon)} />
+      : null
+
     return (
       <div className={styles.playerBoard}>
         <p className={styles.playerId}>
+          {playerIcon}
           {`Player${p}`}: <Address address={playerAddress} />
         </p>
         {undefined !== opponentHits ? (

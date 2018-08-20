@@ -2,6 +2,7 @@ import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAME
   REVEAL_BOARD, REVEAL_MOVES } from './actions'
 import { getStore } from '../'
 import { getGameContract } from '../../utils/contract'
+import { GAME_STATUS } from '../../utils/constants'
 import {
   shipPositionsToSolidityBytesHex,
   shipLengthsToSolidityBytesHex,
@@ -32,11 +33,7 @@ export default () => () => next => async action => {
 
       console.log('Load my games from cloud...')
 
-      const games = await cloudDb.loadMyGames(getNetwork(), account)
-
-      await processGames(getWeb3(), games, getAuthKey(), account)
-
-      return games
+      return cloudDb.loadMyGames(getNetwork(), account)
     }
     case LOAD_GAMES: {
       await waitUntilWeb3Connected()
@@ -89,9 +86,11 @@ export default () => () => next => async action => {
 
       console.log(`...done`)
 
-      console.log(`Triggering real-time update to all clients...`)
+      console.log(`Updating game in cloud...`)
 
-      await cloudDb.pingGame(id)
+      await cloudDb.updateGame(id, {
+        status: GAME_STATUS.REVEAL_MOVES
+      })
 
       console.log(`...done`)
 
@@ -114,9 +113,11 @@ export default () => () => next => async action => {
 
       console.log(`...done`)
 
-      console.log(`Triggering real-time update to all clients...`)
+      console.log(`Updating game in cloud...`)
 
-      await cloudDb.pingGame(id)
+      await cloudDb.updateGame(id, {
+        status: GAME_STATUS.REVEAL_BOARD
+      })
 
       console.log(`...done`)
 
@@ -189,7 +190,8 @@ export default () => () => next => async action => {
 
       await cloudDb.updateGame(id, {
         player2: account,
-        round: 1
+        round: 1,
+        status: GAME_STATUS.PLAYING
       }, authKey, {
         shipPositions,
         moves: []
@@ -238,6 +240,7 @@ export default () => () => next => async action => {
         player1Moves: [],
         player2: null,
         player2Moves: [],
+        status: GAME_STATUS.NEED_OPPONENT
       }, authKey, /* player1's private data */ {
         shipPositions,
         moves: []

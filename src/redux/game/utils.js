@@ -17,7 +17,6 @@ import { GAME_STATUS } from '../../utils/constants'
 const sanitizeNumber = n => toBN(n).toNumber()
 
 
-
 const processGame = async (Game, id, game, authKey, account, fetchAllDataFromContract = false) => {
   const contract = await Game.at(id)
 

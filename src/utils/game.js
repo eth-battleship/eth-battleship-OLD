@@ -174,7 +174,7 @@ export const getFriendlyGameStatus = (status, game) => {
         str = (!nextPlayer) ? ', ready to reveal' : ` round ${game.round}, ${nextPlayerStr} turn`
       }
 
-      return `Playing${str}`
+      return `Playing${str || ''}`
     }
     case GAME_STATUS.REVEAL_MOVES: {
       const p1Status = game.player1Status

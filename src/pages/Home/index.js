@@ -5,6 +5,7 @@ import AuthenticatedView from '../../components/AuthenticatedView'
 import Loading from '../../components/Loading'
 import ErrorBox from '../../components/ErrorBox'
 import GamesTable from '../../components/GamesTable'
+import Button from '../../components/Button'
 import { connectStore } from '../../redux'
 
 import styles from './index.styl'
@@ -32,20 +33,19 @@ export default class Home extends PureComponent {
 
     if (loading) {
       content = <div><Loading /></div>
-    } else if (error) {
-      content = <ErrorBox>{`${error}`}</ErrorBox>
     } else {
       content = this._renderGames(games)
     }
 
     return (
       <div>
-        <button
+        <Button
           className={styles.startButton}
           onClick={this._onStartGame}
         >
           Start new game
-        </button>
+        </Button>
+        {error ? <ErrorBox className={styles.error}>{`${error}`}</ErrorBox> : null}
         {content}
       </div>
     )

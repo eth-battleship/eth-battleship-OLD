@@ -1,43 +1,58 @@
 import React, { PureComponent } from 'react'
+import ReactTable from 'react-table'
 
 import { connectStore } from '../../redux'
 import { getFriendlyGameStatus } from '../../utils/game'
 
-import styles from './index.styl'
+import '../../../node_modules/react-table/react-table.css'
+import './index.css'
+
+const COLUMNS = [ {
+  Header: 'Address',
+  accessor: 'id' // String-based value accessors!
+}, {
+  Header: 'Started',
+  accessor: 'created',
+  Cell: ({ value }) => new Date(value).toString()
+}, {
+  Header: 'Status',
+  accessor: 'status',
+  Cell: props => getFriendlyGameStatus(props.value)
+} ]
+
 
 @connectStore()
 export default class GameTable extends PureComponent {
   render () {
     const { games } = this.props
 
-    const rows = Object.keys(games).map(id => {
-      const game = games[id]
-
-      return (
-        <tr key={id} onClick={() => this._onPress(id)}>
-          <td className={styles.id}>
-            {id}
-          </td>
-          <td className={styles.created}>
-            {new Date(game.created).toString()}
-          </td>
-          <td className={styles.status}>
-            {getFriendlyGameStatus(game.status)}
-          </td>
-        </tr>
-      )
-    })
-
     return (
-      <table style={styles.table}>
-        <tbody>{rows}</tbody>
-      </table>
+      <ReactTable
+        minRows={1}
+        showPagination={false}
+        showPageSizeOptions={false}
+        data={games}
+        resolveData={this._dataToArray}
+        columns={COLUMNS}
+        getTdProps={this._getTdProps}
+      />
     )
   }
 
-  _onPress = id => {
-    const { navGame } = this.props.actions
+  _dataToArray = games => {
+    Object.keys(games).forEach(id => {
+      const game = games[id]
+      game.id = id
+    })
 
-    navGame(id)
+    return Object.values(games)
   }
+
+  _getTdProps = (state, rowInfo) => ({
+    onClick: () => {
+      if (rowInfo) {
+        this.props.actions.navGame(rowInfo.original.id)
+      }
+    }
+  })
 }
