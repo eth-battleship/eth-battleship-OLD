@@ -68,7 +68,7 @@
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.2",
     "truffle": "^4.1.14",
-    "truffle-contract": "^1.1.8",
+    "truffle-contract": "^3.0.6",
     "truffle-solidity-loader": "0.0.8",
     "url-loader": "0.5.7",
     "webpack": "1.14.0",

@@ -1,7 +1,7 @@
 import { CREATE_GAME, PLAY_MOVE, JOIN_GAME, WATCH_GAME, LOAD_GAMES, LOAD_MY_GAMES,
   REVEAL_BOARD, REVEAL_MOVES } from './actions'
 import { getStore } from '../'
-import { getGameContract } from '../../utils/contract'
+import { getGameContract, getLibraryContract } from '../../utils/contract'
 import { GAME_STATUS } from '../../utils/constants'
 import {
   shipPositionsToSolidityBytesHex,
@@ -171,11 +171,14 @@ export default () => () => next => async action => {
       const Game = await getGameContract(web3, account)
       const contract = await Game.at(id)
 
+      const Library = await getLibraryContract(web3)
+      const libraryContract = await Library.deployed()
+
       const board = shipPositionsToSolidityBytesHex(shipPositions)
 
       console.log(`Calculating board hash for ${board}...`)
 
-      const boardHash = await contract.calculateBoardHash.call(
+      const boardHash = await libraryContract.calculateBoardHash.call(
         await contract.ships.call(),
         await contract.boardSize.call(),
         board
@@ -212,9 +215,8 @@ export default () => () => next => async action => {
       const account = getDefaultAccount()
       const web3 = getWeb3()
 
-      const Game = await getGameContract(web3, account)
-
-      let contract = await Game.deployed()
+      const Library = await getLibraryContract(web3)
+      const libraryContract = await Library.deployed()
 
       console.log(`Create game...`)
 
@@ -225,21 +227,39 @@ export default () => () => next => async action => {
 
       console.log(`Calculating board hash for ${board}...`)
 
-      const boardHash = await contract.calculateBoardHash.call(ships, boardLength, board)
+      const boardHash = await libraryContract.calculateBoardHash.call(ships, boardLength, board)
 
       console.log(`...${boardHash}`)
 
       console.log('Deploying new contract...')
 
-      contract = await Game.new(ships, boardLength, maxRounds, boardHash)
+      const Game = await getGameContract(web3, account)
+      // console.warn(Game.binary)
+      // console.log(Game.abi, Game.deployedBytecode)
+      // const _Game = new web3.eth.Contract(Game.abi)
+      // console.log(Game.binary)
+      // _Game.deploy({
+      //   data: Game.binary,
+      //   arguments: [ ships, boardLength, maxRounds, boardHash ]
+      // }, console.log.bind(console) )
+      // .send({
+      //   from: account
+      // })
 
-      console.log(`...deployed at: ${contract.address}`)
+      // const result = await tx
+      //
+      // console.log(result)
+      // throw new Error('test')
+
+      const newContract = await Game.new(ships, boardLength, maxRounds, boardHash)
+
+      console.log(`...deployed at: ${newContract.address}`)
 
       console.log(`Setting up cloud data...`)
 
-      await cloudDb.addGame(contract.address, {
+      await cloudDb.addGame(newContract.address, {
         network,
-        player1: await contract.player1.call(),
+        player1: await newContract.player1.call(),
         player1Moves: [],
         player2: null,
         player2Moves: [],
@@ -251,7 +271,7 @@ export default () => () => next => async action => {
 
       console.log(`...done`)
 
-      return store.actions.navGame(contract.address)
+      return store.actions.navGame(newContract.address)
     }
     default: {
       return next(action)

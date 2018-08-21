@@ -11,12 +11,15 @@ export default () => () => next => async action => {
       try {
         const { web3, network, accounts } = await setupWeb3()
 
-        // check contract
+        // check contract exists on network
         if (web3) {
           try {
             const Game = await getGameContract(web3)
-            await Game.deployed()
+            const contract = await Game.deployed()
+            await contract.state.call()
           } catch (err) {
+            console.warn(err)
+
             throw new Error('Contract not deployed. Please connect to either Mainnet, Ropsten or Rinkeby.')
           }
         }

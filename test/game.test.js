@@ -1,42 +1,15 @@
+const { _assertCall } = require('./includes/utils')
+const {
+  boardSize,
+  shipSizes,
+  player1Board,
+  player2Board,
+  player1BoardHash,
+  player2BoardHash
+} = require('./includes/fixtures')
+
 const Game = artifacts.require("./Game.sol")
 
-const _sanitizeBN = arg => (arg && arg.toNumber) ? arg.toNumber() : arg
-const _sanitizeOutput = arg => Array.isArray(arg) ? arg.map(_sanitizeBN) : _sanitizeBN(arg)
-const _assertCall = (fn, expected) => (typeof fn === 'function' ? fn.call() : fn).then(val => {
-  assert.deepEqual(_sanitizeOutput(val), expected)
-})
-
-const boardSize = 2
-const shipSizes = '0x02'
-
-/*
-0 0
-1 1
-*/
-const player1Board = '0x010000' // [1, 0, 0]
-const player1BoardHash = '0xec58f3d8eaf702e8aa85662b02bda7f3c8e5a845b4d68b8245529ad6396c2431'
-
-/*
-0 1
-0 1
-*/
-const player2Board = '0x000101' // [0, 1, 1]
-const player2BoardHash = '0x7474de3473dbd611f09cfcd49dd8cfe9fae3a8d0cc2acf4bdf1e2f17d3a4484d'
-
-
-const validBoards = {
-  '0x000101': '0x7474de3473dbd611f09cfcd49dd8cfe9fae3a8d0cc2acf4bdf1e2f17d3a4484d',
-  '0x000001': '0x95dbad4637b631c083a4bbeef4e3d609c32941d9997a3aec4a123aaa0671f41b',
-  '0x000000': '0x99ff0d9125e1fc9531a11262e15aeb2c60509a078c4cc4c64cefdfb06ff68647',
-  '0x010000': '0xec58f3d8eaf702e8aa85662b02bda7f3c8e5a845b4d68b8245529ad6396c2431',
-}
-
-const invalidBoards = {
-  '0x000100': '0xe45e5a4917582ce5e520ebcff2b11411fbe99dadce43f67aae20fdd57e5675df',
-  '0x010001': '0x197cd09c75fbb6e42d6d40c065815ca1790ef56af23f88e0689403ee1924961d',
-  '0x010101': '0x197cd09c75fbb6e42d6d40c065815ca1790ef56af23f88e0689403ee1924961d',
-  '0x010100': '0x197cd09c75fbb6e42d6d40c065815ca1790ef56af23f88e0689403ee1924961d',
-}
 
 contract('setup contract', accounts => {
   it('fails if less than one ship specified', async () => {
@@ -135,92 +108,6 @@ contract('helper functions', accounts => {
         accounts[0],
         accounts[1]
       ])
-    })
-  })
-
-  describe('.countBits()', () => {
-    it('works as expected', async () => {
-      const game = await Game.deployed()
-
-      await _assertCall(game.countBits.call(0), 0)
-      await _assertCall(game.countBits.call(1), 1)
-      await _assertCall(game.countBits.call(2), 1)
-      await _assertCall(game.countBits.call(3), 2)
-      await _assertCall(game.countBits.call(1984798234), 17) // 1110110010011011001111000011010
-    })
-  })
-
-  describe('.calculateMove', () => {
-    it('works as expected', async () => {
-      const game = await Game.deployed()
-
-      await _assertCall(game.calculateMove.call(2, 0, 0), 1)
-      await _assertCall(game.calculateMove.call(2, 1, 1), 8)
-      await _assertCall(game.calculateMove.call(2, 0, 1), 2)
-      await _assertCall(game.calculateMove.call(2, 1, 0), 4)
-    })
-  })
-
-  describe('.calculateBoardHash()', () => {
-    it('works for valid boards', async () => {
-      const game = await Game.deployed()
-
-      const err = []
-
-      for (let board in validBoards) {
-        try {
-          await game.calculateBoardHash(shipSizes, boardSize, board)
-        } catch (e) {
-          err.push(e)
-        }
-      }
-
-      assert.equal(err.length, 0)
-    })
-
-    it('works when ships are at edges', async () => {
-      const game = await Game.deployed()
-
-      const err = []
-
-      try {
-        await game.calculateBoardHash('0x0504030302', 10, '0x000000060001000901070901090700')
-      } catch (e) {
-        err.push(e)
-      }
-
-      assert.equal(err.length, 0)
-    })
-
-    it('fails for invalid boards', async () => {
-      const game = await Game.deployed()
-
-      const err = []
-
-      for (let board in invalidBoards) {
-        try {
-          await game.calculateBoardHash(shipSizes, boardSize, board)
-        } catch (e) {
-          err.push(e)
-        }
-      }
-
-      assert.equal(err.length, Object.keys(invalidBoards).length)
-    })
-
-    it('fails when ships overlap', async () => {
-      const game = await Game.deployed()
-
-      let err
-
-      try {
-        // overlap on bottom-right corner of board
-        await game.calculateBoardHash('0x0504030303', 10, '0x000000060001000901070901090700')
-      } catch (e) {
-        err = e
-      }
-
-      assert.isDefined(err)
     })
   })
 })
