@@ -1,5 +1,3 @@
-import { toBN } from 'web3-utils'
-
 import cloudDb from '../../cloudDb'
 import { getGameContract, isSameAddress } from '../../utils/contract'
 import {
@@ -8,13 +6,11 @@ import {
   calculateMovesAndHitsFromFinalContractValue,
   updateMoveHits,
   deriveGameStatusFromContractValue,
+  deriveIntFromContractValue,
   derivePlayerStatusFromContractValue,
   mergePrivateMovesWithPublicMoves
 } from '../../utils/game'
 import { GAME_STATUS } from '../../utils/constants'
-
-
-const sanitizeNumber = n => toBN(n).toNumber()
 
 
 const processGame = async (Game, id, game, authKey, account, fetchAllDataFromContract = false) => {
@@ -31,10 +27,10 @@ const processGame = async (Game, id, game, authKey, account, fetchAllDataFromCon
 
   game.player1 = player1
   game.player2 = player2
-  game.maxRounds = sanitizeNumber(maxRounds)
-  game.boardLength = sanitizeNumber(boardLength)
+  game.maxRounds = deriveIntFromContractValue(maxRounds)
+  game.boardLength = deriveIntFromContractValue(boardLength)
   game.shipLengths = solidityBytesHexToShipLengths(ships)
-  game.status = deriveGameStatusFromContractValue(sanitizeNumber(state))
+  game.status = deriveGameStatusFromContractValue(state)
 
   // all rounds played then game is ready to be revealed
   if (game.status === GAME_STATUS.PLAYING && game.round > game.maxRounds) {
@@ -52,8 +48,8 @@ const processGame = async (Game, id, game, authKey, account, fetchAllDataFromCon
       const [ p2Board, /* boardHash */, p2Moves, p2Hits ] =
         await contract.players.call(game.player2)
 
-      game.player1Hits = sanitizeNumber(p1Hits)
-      game.player2Hits = sanitizeNumber(p2Hits)
+      game.player1Hits = deriveIntFromContractValue(p1Hits)
+      game.player2Hits = deriveIntFromContractValue(p2Hits)
 
       game.player1Board = solidityBytesHexToShipPositions(p1Board)
       game.player2Board = solidityBytesHexToShipPositions(p2Board)
@@ -83,12 +79,12 @@ const processGame = async (Game, id, game, authKey, account, fetchAllDataFromCon
     }
 
     game.player1Status = derivePlayerStatusFromContractValue(
-      sanitizeNumber((await contract.players.call(game.player1))[4])
+      (await contract.players.call(game.player1))[4]
     )
 
     if (game.player2) {
       game.player2Status = derivePlayerStatusFromContractValue(
-        sanitizeNumber((await contract.players.call(game.player2))[4])
+        (await contract.players.call(game.player2))[4]
       )
     }
 

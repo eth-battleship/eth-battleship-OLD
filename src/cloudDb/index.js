@@ -1,3 +1,5 @@
+import { sha3 } from 'web3-utils'
+
 const db = window.firebase.firestore()
 
 db.settings({ timestampsInSnapshots: true })
@@ -9,7 +11,7 @@ const _buildGamesQuery = network => (
     .limit(10)
 )
 
-const _buildPlayerDataId = (gameId, playerAuthKey) => `${gameId}-${playerAuthKey}`
+const _buildPlayerDataId = (gameId, playerAuthKey) => sha3(`${gameId}${playerAuthKey}`)
 
 module.exports = {
   addGame: async (id, gameData, playerAuthKey, playerData) => (
@@ -24,7 +26,9 @@ module.exports = {
   updateGame: async (id, gameData, playerAuthKey, playerData) => (
     Promise.all([
       db.collection('games').doc(id).set(gameData, { merge: true }),
-      db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData, { merge: true }),
+      (playerAuthKey && playerData)
+        ? db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData, { merge: true })
+        : Promise.resolve()
     ])
   ),
   pingGame: async id => (

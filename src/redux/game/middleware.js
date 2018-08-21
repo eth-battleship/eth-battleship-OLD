@@ -6,7 +6,8 @@ import { GAME_STATUS } from '../../utils/constants'
 import {
   shipPositionsToSolidityBytesHex,
   shipLengthsToSolidityBytesHex,
-  moveArrayTo256BitBN
+  moveArrayTo256BitBN,
+  deriveGameStatusFromContractValue
 } from '../../utils/game'
 import cloudDb from '../../cloudDb'
 import { processGames } from './utils'
@@ -111,12 +112,14 @@ export default () => () => next => async action => {
 
       await contract.revealBoard(shipPositionsToSolidityBytesHex(shipPositions))
 
+      const newStatus = deriveGameStatusFromContractValue(await contract.state.call())
+
       console.log(`...done`)
 
       console.log(`Updating game in cloud...`)
 
       await cloudDb.updateGame(id, {
-        status: GAME_STATUS.REVEAL_BOARD
+        status: newStatus
       })
 
       console.log(`...done`)

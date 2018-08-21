@@ -21,6 +21,7 @@
 .ReactTable .rt-td {
   font-size: 1rem;
   padding: 1em;
+  padding-left: 0.3em;
 }
 
 .ReactTable .rt-th {

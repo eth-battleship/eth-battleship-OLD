@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { bytesToHex, hexToBytes, toBN } from 'web3-utils'
+import { toBN, bytesToHex, hexToBytes } from 'web3-utils'
 
 import { GAME_STATUS, PLAYER_STATUS } from './constants'
 import { getStore } from '../redux'
@@ -149,7 +149,7 @@ export const getNextPlayerToPlay = game => {
   return p2moves.length < p1moves.length ? 2 : 1
 }
 
-export const getFriendlyGameStatus = (status, game) => {
+export const getFriendlyGameStatus = (status, game = {}) => {
   const account = getStore().selectors.getDefaultAccount()
   const playerOneIsMe = game && account && _.get(game, 'player1') === account
   const playerTwoIsMe = game && account && _.get(game, 'player2') === account
@@ -257,8 +257,11 @@ export const getFriendlyGameStatus = (status, game) => {
 }
 
 
+export const deriveIntFromContractValue = value => toBN(value).toNumber()
+
+
 export const deriveGameStatusFromContractValue = statusValue => {
-  switch (statusValue) {
+  switch (deriveIntFromContractValue(statusValue)) {
     case 0:
       return GAME_STATUS.NEED_OPPONENT
     case 1:
@@ -275,7 +278,7 @@ export const deriveGameStatusFromContractValue = statusValue => {
 }
 
 export const derivePlayerStatusFromContractValue = statusValue => {
-  switch (statusValue) {
+  switch (deriveIntFromContractValue(statusValue)) {
     case 0:
       return PLAYER_STATUS.READY
     case 1:
