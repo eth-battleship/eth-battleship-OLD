@@ -12,15 +12,16 @@ export default class App extends PureComponent {
   render () {
     let content
 
-    const web3Error = this.props.selectors.getWeb3Error()
-    if (web3Error) {
+    const connError = this.props.selectors.getConnectionError()
+    if (connError) {
       content = (
         <ErrorBox>
           <p>
-            Unable to detect web3 provider instance. Ensure you have MetaMask
-            installed or that you are viewing this page within a Dapp browser.
+            Unable to connect to Ethereum. Ensure you have MetaMask
+            installed or that you are viewing this page within a Dapp browser,
+            and ensure that you are connected to the right Ethereum network.
           </p>
-          <p>Error: {`${web3Error}`}</p>
+          <p>Error: {`${connError}`}</p>
         </ErrorBox>
       )
     } else {

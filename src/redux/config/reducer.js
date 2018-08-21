@@ -15,14 +15,14 @@ export default () => {
   })
 
   return handleActions({
-    [SETUP_WEB3]: (state, { payload: { web3, accounts, network, web3Error } }) => {
+    [SETUP_WEB3]: (state, { payload: { web3, accounts, network, connectionError } }) => {
       _web3Promise.resolve()
 
       return state
         .set('web3', web3)
         .set('accounts', accounts)
-        .set('network', network.toLowerCase())
-        .set('web3Error', web3Error)
+        .set('network', network ? network.toLowerCase() : null)
+        .set('connectionError', connectionError)
     },
     [AUTHENTICATE]: (state, { payload: { encryptionKey, authKey, signingAccount } }) => {
       _keyPromise.resolve()
@@ -38,7 +38,7 @@ export default () => {
     network: null,
     web3: null,
     _web3Promise,
-    web3Error: null,
+    connectionError: null,
     encryptionKey: null,
     authKey: null,
     _keyPromise

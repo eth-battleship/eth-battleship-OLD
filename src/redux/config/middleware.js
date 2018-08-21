@@ -1,5 +1,6 @@
 import { AUTH_SENTENCE } from '../../utils/constants'
 import { SETUP_WEB3, AUTHENTICATE } from './actions'
+import { getGameContract } from '../../utils/contract'
 import setupWeb3 from '../../web3'
 import { getStore } from '../'
 
@@ -10,14 +11,24 @@ export default () => () => next => async action => {
       try {
         const { web3, network, accounts } = await setupWeb3()
 
+        // check contract
+        if (web3) {
+          try {
+            const Game = await getGameContract(web3)
+            await Game.deployed()
+          } catch (err) {
+            throw new Error('Contract not deployed. Please connect to either Mainnet, Ropsten or Rinkeby.')
+          }
+        }
+
         return next({
           ...action,
           payload: { web3, network, accounts }
         })
-      } catch (web3Error) {
+      } catch (connectionError) {
         return next({
           ...action,
-          payload: { web3Error }
+          payload: { connectionError }
         })
       }
     }

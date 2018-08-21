@@ -5,10 +5,10 @@ import styles from './index.styl'
 
 export default class ErrorBox extends PureComponent {
   render () {
-    const { className } = this.props
+    const { className, children } = this.props
 
     return (
-      <div className={cx(styles.box, className)}>{`${this.props.children}`}</div>
+      <div className={cx(styles.box, className)}>{children}</div>
     )
   }
 }

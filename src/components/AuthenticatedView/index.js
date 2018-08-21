@@ -26,7 +26,7 @@ export default class AuthenticatedView extends PureComponent {
         >
           {text || 'Please sign in'}
         </Button>
-        {error ? <ErrorBox>{error}</ErrorBox> : null}
+        {error ? <ErrorBox>{`${error}`}</ErrorBox> : null}
       </div>
     )
   }

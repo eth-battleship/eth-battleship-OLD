@@ -68,7 +68,7 @@ export default class ViewGame extends PureComponent {
     return (
       <div>
         <h2>Game: {id}</h2>
-        {error ? <ErrorBox className={styles.error}>{error}</ErrorBox> : null}
+        {error ? <ErrorBox className={styles.error}>{`${error}`}</ErrorBox> : null}
         <AuthenticatedView text='Please sign in to view game'>
           {game ? this._renderGame(game) : <Loading />}
         </AuthenticatedView>

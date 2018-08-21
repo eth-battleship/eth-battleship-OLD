@@ -30,7 +30,7 @@ export default class NewGame extends PureComponent {
             onPressButton={this._onStartGame}
             className={styles.setupBoard}
           />
-          {error ? <ErrorBox>{error}</ErrorBox> : null}
+          {error ? <ErrorBox>{`${error}`}</ErrorBox> : null}
         </div>
       </AuthenticatedView>
     )

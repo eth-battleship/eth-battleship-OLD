@@ -2,7 +2,7 @@ import Web3 from 'web3'
 
 import { promisify } from '../utils/promise'
 
-const web3Result = new Promise(resolve => {
+const web3Result = new Promise((resolve, reject) => {
   // Wait for loading completion to avoid race conditions with web3 injection timing.
   window.addEventListener('load', () => {
     const { web3 } = window
@@ -14,13 +14,9 @@ const web3Result = new Promise(resolve => {
       // Use Mist/MetaMask's provider.
       resolve(new Web3(web3.currentProvider))
     } else {
-      console.log('No web3 instance injected, using Local web3.')
+      console.log('No web3 instance injected.')
 
-      // Fallback to localhost if no web3 injection. We've configured this to
-      // use the development console's port by default.
-      const provider = new Web3.providers.HttpProvider('http://127.0.0.1:9545')
-
-      resolve(new Web3(provider))
+      reject(new Error('web3 not detected!'))
     }
   })
 })
