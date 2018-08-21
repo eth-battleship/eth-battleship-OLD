@@ -346,12 +346,12 @@ export const calculateMovesAndHitsFromFinalContractValue = (
 }
 
 
-export const moveArrayTo256BitBN = (boardLength, moveArray) => {
+export const moveArrayTo256BitHexString = (boardLength, moveArray) => {
   let bn = toBN(0)
 
   moveArray.forEach(({ x, y }) => {
     bn = bn.bincn(x * boardLength + y)
   })
 
-  return bn
+  return `0x${bn.toString(2, 256)}`
 }
