@@ -33,6 +33,9 @@ export default class App extends PureComponent {
           <div className={styles.brand} onClick={this._navHome}>
             Blockchain Battleship!
           </div>
+          <a className={styles.githubLink} href="https://github.com/eth-battleship/eth-battleship.github.io">
+            View source
+          </a>
         </header>
         <section className={styles.content}>
           {content}
