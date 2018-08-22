@@ -3,7 +3,7 @@ const {
   boardSize,
   shipSizes,
   validBoards,
-  invalidBoards,
+  invalidBoards
 } = require('./includes/fixtures')
 
 const GameLibrary = artifacts.require("./GameLibrary.sol")
@@ -33,7 +33,7 @@ contract('lib library', () => {
   })
 
   describe('.calculateBoardHash()', () => {
-    it('works for valid boards', async () => {
+    it('works when ships are within boundaries', async () => {
       const lib = await GameLibrary.deployed()
 
       const err = []
@@ -63,35 +63,18 @@ contract('lib library', () => {
       assert.equal(err.length, 0)
     })
 
-    it('fails for invalid boards', async () => {
+    it('fails when ships exceed boundaries', async () => {
       const lib = await GameLibrary.deployed()
 
-      const err = []
-
       for (let board in invalidBoards) {
-        try {
-          await lib.calculateBoardHash(shipSizes, boardSize, board)
-        } catch (e) {
-          err.push(e)
-        }
+        assert.equal(await lib.calculateBoardHash(shipSizes, boardSize, board), '0x0')
       }
-
-      assert.equal(err.length, Object.keys(invalidBoards).length)
     })
 
     it('fails when ships overlap', async () => {
       const lib = await GameLibrary.deployed()
 
-      let err
-
-      try {
-        // overlap on bottom-right corner of board
-        await lib.calculateBoardHash('0x0504030303', 10, '0x000000060001000901070901090700')
-      } catch (e) {
-        err = e
-      }
-
-      assert.isDefined(err)
+      assert.equal(await lib.calculateBoardHash('0x0504030303', 10, '0x000000060001000901070901090700'), '0x0')
     })
   })
 })

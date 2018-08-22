@@ -6,7 +6,7 @@ import { GAME_STATUS } from '../../utils/constants'
 import {
   shipPositionsToSolidityBytesHex,
   shipLengthsToSolidityBytesHex,
-  moveArrayTo256BitHexString,
+  moveArrayToHexString,
   deriveGameStatusFromContractValue
 } from '../../utils/game'
 import cloudDb from '../../cloudDb'
@@ -83,7 +83,7 @@ export default () => () => next => async action => {
 
       console.log('Calling contract revealMoves()...')
 
-      await contract.revealMoves(moveArrayTo256BitHexString(game.boardLength, moves))
+      await contract.revealMoves(moveArrayToHexString(game.boardLength, moves))
 
       console.log(`...done`)
 
@@ -234,22 +234,6 @@ export default () => () => next => async action => {
       console.log('Deploying new contract...')
 
       const Game = await getGameContract(web3, account)
-      // console.warn(Game.binary)
-      // console.log(Game.abi, Game.deployedBytecode)
-      // const _Game = new web3.eth.Contract(Game.abi)
-      // console.log(Game.binary)
-      // _Game.deploy({
-      //   data: Game.binary,
-      //   arguments: [ ships, boardLength, maxRounds, boardHash ]
-      // }, console.log.bind(console) )
-      // .send({
-      //   from: account
-      // })
-
-      // const result = await tx
-      //
-      // console.log(result)
-      // throw new Error('test')
 
       const newContract = await Game.new(ships, boardLength, maxRounds, boardHash)
 

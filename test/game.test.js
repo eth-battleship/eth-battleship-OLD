@@ -1,3 +1,5 @@
+const { toHex } = require('web3-utils')
+
 const { _assertCall } = require('./includes/utils')
 const {
   boardSize,
@@ -5,7 +7,8 @@ const {
   player1Board,
   player2Board,
   player1BoardHash,
-  player2BoardHash
+  player2BoardHash,
+  invalidBoards,
 } = require('./includes/fixtures')
 
 const Game = artifacts.require("./Game.sol")
@@ -172,13 +175,13 @@ contract('reveal moves', accounts => {
     const err = []
 
     try {
-      await game.revealMoves(7) // 111
+      await game.revealMoves(toHex(7)) // 111
     } catch (e) {
       err.push(e)
     }
 
     try {
-      await game.revealMoves(23) // 10111
+      await game.revealMoves(toHex(23)) // 10111
     } catch (e) {
       err.push(e)
     }
@@ -186,7 +189,7 @@ contract('reveal moves', accounts => {
     assert.equal(err.length, 2)
 
     try {
-      await game.revealMoves(6) // 110
+      await game.revealMoves(toHex(6)) // 110
     } catch (e) {
       err.push(e)
     }
@@ -207,7 +210,7 @@ contract('reveal moves', accounts => {
   })
 
   it('updates state', async () => {
-    await game.revealMoves(4) // 100
+    await game.revealMoves(toHex(4)) // 100
 
     await _assertCall(game.state, 2)
     await _assertCall(game.players.call(accounts[0]), [
@@ -267,7 +270,26 @@ contract('reveal board', accounts => {
       await game.revealMoves(3, { from: accounts[1] }) // 011
     })
 
-    it('still requires a valid board', async () => {
+    it('cannot reveal an invalid board', async () => {
+      const board = Object.values(invalidBoards)[0]
+
+      game = await Game.new(shipSizes, 2, 2, board)
+      await game.join(player2BoardHash, { from: accounts[1] })
+      await game.revealMoves(3, { from: accounts[0] }) // 011
+      await game.revealMoves(3, { from: accounts[1] }) // 011\
+
+      let err
+
+      try {
+        await game.revealBoard(board)
+      } catch (e) {
+        err = e
+      }
+
+      assert.isDefined(err)
+    })
+
+    it('requires a matching board', async () => {
       let err
 
       try {

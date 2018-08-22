@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { toBN, bytesToHex, hexToBytes } from 'web3-utils'
+import { toBN, toHex, bytesToHex, hexToBytes } from 'web3-utils'
 
 import { GAME_STATUS, PLAYER_STATUS } from './constants'
 import { getStore } from '../redux'
@@ -346,12 +346,15 @@ export const calculateMovesAndHitsFromFinalContractValue = (
 }
 
 
-export const moveArrayTo256BitHexString = (boardLength, moveArray) => {
+
+export const moveArrayToBN = (boardLength, moveArray) => {
   let bn = toBN(0)
 
   moveArray.forEach(({ x, y }) => {
     bn = bn.bincn(x * boardLength + y)
   })
 
-  return `0x${bn.toString(2, 256)}`
+  return bn
 }
+
+export const moveArrayToHexString = (...args) => toHex(moveArrayToBN(...args))

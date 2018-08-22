@@ -74,4 +74,5 @@ library GameLibrary {
 
     return keccak256(board_);
   }
+
 }
