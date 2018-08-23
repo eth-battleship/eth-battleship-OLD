@@ -1,49 +1,51 @@
-## blockchain-battleship
+## eth-battleship
 
 [![Build Status](https://travis-ci.org/eth-battleship/eth-battleship.github.io.svg?branch=source)](https://travis-ci.org/eth-battleship/eth-battleship.github.io)
 
-Live demo (Ropsten): [https://eth-battleship.github.io/](https://eth-battleship.github.io/)
+Live demo (Mainnet, Rinkeby, Ropsten): [https://eth-battleship.github.io/](https://eth-battleship.github.io/)
+
+This is a minimalist implementation of the game Battleship on the Ethereum blockchain.
+It is to be played by 2 players (i.e. 2 accounts) with any no. of additional observers
+able to watch the game progress.
+
+In order to allow for a better user experience, only settlement (i.e. the final
+  calculation of who won the game) is done in the smart contract on-chain. All
+  intermediate moves played by each player are, until then, stored off chain.
+
+To understand more of the technical architecture of the game and the rationale
+behind it please read [design_pattern_desicions.md](design_pattern_desicions.md).
+
+To understand how security risks are mitigated please read [avoiding_common_attacks.md](avoiding_common_attacks.md).
 
 ## Developer guide
 
+This guide is for running the dapp locally.
+
+Pre-requisites:
+
+* Node.js 8.11.4
+* NPM 6.2.0
+
+
 Install [Truffle](https://truffleframework.com/docs/getting_started/installation):
 
-```shell
-npm i -g truffle
-```
-
-In the project folder, prepare the contracts:
-
-```shell
-npm install
-truffle install zeppelin
-truffle compile
-```
-
-Now let's get an Ethereum client running and connected to one of the test networks.
-To run a local development chain do:
+Let's run a local private test network:
 
 ```
 truffle develop
 ```
 
-Now copy `truffle-config.js` to `truffle.js` and edit the contents according
-to which network you wish to deploy to. Then run:
+In the project folder, prepare and deploy the contracts:
 
-```
-truffle migrate
+```shell
+yarn
+npx truffle migrate --reset
 ```
 
-Now you can the tests to ensure everything works:
+To test the smart contract code please run:
 
 ```shell
 truffle test
-```
-
-To run the app (against locally running dev chain):
-
-```shell
-./dev
 ```
 
 ## Tech architecture
