@@ -20,7 +20,7 @@ export default () => () => next => async action => {
           } catch (err) {
             console.warn(err)
 
-            throw new Error('Contract not deployed. Please connect to either Ropsten or Rinkeby.')
+            throw new Error('Contract not deployed. Please connect to either Mainnet, Ropsten or Rinkeby.')
           }
         }
 
