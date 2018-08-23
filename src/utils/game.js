@@ -225,11 +225,11 @@ export const getFriendlyGameStatus = (status, game = {}) => {
       return 'Players need to reveal their boards to the contract'
     }
     case GAME_STATUS.OVER: {
-      const { p1Hits, p2Hits } = game
+      const { player1Hits, player2Hits } = game
 
       let str
 
-      if (p1Hits > p2Hits) {
+      if (player1Hits > player2Hits) {
         if (playerOneIsMe) {
           str = 'You won 😄'
         } else if (playerTwoIsMe) {
@@ -237,7 +237,7 @@ export const getFriendlyGameStatus = (status, game = {}) => {
         } else {
           str = 'Player1 won'
         }
-      } else if (p2Hits > p1Hits) {
+      } else if (player2Hits > player1Hits) {
         if (playerTwoIsMe) {
           str = 'You won 😄'
         } else if (playerOneIsMe) {

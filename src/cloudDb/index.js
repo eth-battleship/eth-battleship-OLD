@@ -18,22 +18,26 @@ module.exports = {
     Promise.all([
       db.collection('games').doc(id).set({
         ...gameData,
-        created: Date.now()
+        created: Date.now(),
+        updated: []
       }),
       db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData)
     ])
   ),
-  updateGame: async (id, gameData, playerAuthKey, playerData) => (
-    Promise.all([
-      db.collection('games').doc(id).set(gameData, { merge: true }),
+  updateGame: async (id, gameData, playerAuthKey, playerData) => {
+    const { updated } = (await db.collection('games').doc(id).get()).data()
+
+    return Promise.all([
+      db.collection('games').doc(id).set({
+        ...gameData,
+        // updating an array seems to trigger the firestore real time updates better
+        updated: updated.concat(Date.now())
+      }, { merge: true }),
       (playerAuthKey && playerData)
         ? db.collection('playerData').doc(_buildPlayerDataId(id, playerAuthKey)).set(playerData, { merge: true })
         : Promise.resolve()
     ])
-  ),
-  pingGame: async id => (
-    db.collection('games').doc(id).set({ updated: Date.now() }, { merge: true })
-  ),
+  },
   getPlayerData: async (gameId, playerAuthKey) => (
     (await db.collection('playerData').doc(_buildPlayerDataId(gameId, playerAuthKey)).get()).data()
   ),

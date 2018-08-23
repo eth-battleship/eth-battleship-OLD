@@ -316,8 +316,6 @@ export default class ViewGame extends PureComponent {
           this.setState({
             revealing: false
           })
-
-          this._refetch()
         })
         .catch(error => {
           this.setState({
@@ -342,8 +340,6 @@ export default class ViewGame extends PureComponent {
           this.setState({
             revealing: false
           })
-
-          this._refetch()
         })
         .catch(error => {
           this.setState({
@@ -370,8 +366,6 @@ export default class ViewGame extends PureComponent {
             this.setState({
               joining: false
             })
-
-            this._refetch()
           })
           .catch(error => {
             this.setState({
