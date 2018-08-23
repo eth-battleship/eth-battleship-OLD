@@ -34,6 +34,12 @@ contract Game {
     RevealedBoard
   }
 
+
+  event JoinGame(address player);
+  event RevealMoves(address player);
+  event RevealBoard(address player);
+
+
   struct Player {
       // player's board (will be set later)
       bytes board;
@@ -134,6 +140,8 @@ contract Game {
     players[player2].state = PlayerState.Playing;
     // game state
     state = GameState.Playing;
+    // log
+    emit JoinGame(player2);
   }
 
 
@@ -163,6 +171,9 @@ contract Game {
     if (players[opponent].state == PlayerState.RevealedMoves) {
       state = GameState.RevealBoard;
     }
+
+    // log
+    emit RevealMoves(msg.sender);
   }
 
 
@@ -194,6 +205,9 @@ contract Game {
     if (players[opponent].state == PlayerState.RevealedBoard) {
       state = GameState.Over;
     }
+
+    // log
+    emit RevealBoard(msg.sender);
   }
 
 
