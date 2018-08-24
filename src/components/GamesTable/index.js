@@ -17,7 +17,7 @@ const COLUMNS = [ {
 }, {
   Header: 'Status',
   accessor: 'status',
-  Cell: props => getFriendlyGameStatus(props.value)
+  Cell: props => getFriendlyGameStatus(props.value[0], props.value[1])
 } ]
 
 
@@ -39,14 +39,13 @@ export default class GameTable extends PureComponent {
     )
   }
 
-  _dataToArray = games => {
-    Object.keys(games).forEach(id => {
-      const game = games[id]
-      game.id = id
+  _dataToArray = games => (
+    Object.keys(games).map(id => {
+      const ga = { ...games[id], id }
+      ga.status = [ games[id].status, ga ]
+      return ga
     })
-
-    return Object.values(games)
-  }
+  )
 
   _getTdProps = (state, rowInfo) => ({
     onClick: () => {
