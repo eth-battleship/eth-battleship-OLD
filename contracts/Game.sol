@@ -214,11 +214,6 @@ contract Game {
   /**
    * Calculate no. of hits for a player.
    *
-   * Helper function to `reveal()`.
-   *
-   * This can be called while there are still rounds left to play, if a player
-   * thnks they've already sunk all the opponent's ships.
-   *
    * @param  revealer_ The player whose board it is
    * @param  mover_ The opponent player whose hits to calculate
    */
