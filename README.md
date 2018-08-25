@@ -13,7 +13,7 @@ In order to allow for a better user experience, only settlement (i.e. the final
   intermediate moves played by each player are, until then, stored off chain.
 
 To understand more of the technical architecture of the game and the rationale
-behind it please read [design_pattern_desicions.md](design_pattern_desicions.md).
+behind it please read [design_pattern_decisions.md](design_pattern_decisions.md).
 
 To understand how security risks are mitigated please read [avoiding_common_attacks.md](avoiding_common_attacks.md).
 
