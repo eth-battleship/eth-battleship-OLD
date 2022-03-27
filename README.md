@@ -1,8 +1,6 @@
 ## eth-battleship
 
-[![Build Status](https://travis-ci.org/eth-battleship/eth-battleship.github.io.svg?branch=source)](https://travis-ci.org/eth-battleship/eth-battleship.github.io)
-
-Live demo (Mainnet, Rinkeby, Ropsten): [https://eth-battleship.github.io/](https://eth-battleship.github.io/)
+**DEPRECATED: THIS HAS NOW BEEN REPLACED BY a Zero-Knowledge version that's more secure, see https://github.com/eth-battleship/eth-battleship-github.io**
 
 This is a minimalist implementation of the game Battleship on the Ethereum blockchain.
 It is to be played by 2 players (i.e. 2 accounts) with any no. of additional observers
